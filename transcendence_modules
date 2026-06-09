@@ -1,0 +1,36 @@
+IV.1 Web
+Major: Use a framework for both the frontend and backend.
+// Major: Implement real-time features using WebSockets or similar technology.
+Major: Allow users to interact with other users. The minimum requirements are:
+Major: A public API to interact with the database with a secured API key, rate limiting, documentation, and at least 5 endpoints
+//Minor: Use an ORM for the database.
+//Minor: Implement advanced search functionality with filters, sorting, and pagina-tion.
+//Minor: File upload and management system (bi acesso casa de apostas; upload imagem utilizador}
+
+IV.2 Accessibility and Internationalization
+Minor: Support for multiple languages (at least 3 languages)
+Minor: Support for additional browsers
+
+IV.3 User Management
+Major: Standard user management and authentication
+	// Minor: Implement remote authentication with OAuth 2.0
+Major: Advanced permissions system:
+// Minor: User activity analytics and insights dashboard
+
+IV.4 Artificial Intelligence
+//Major: Implement a complete RAG (Retrieval-Augmented Generation) system.
+//Major: Recommendation system using machine learning
+
+IV.5 Cybersecurity
+Major: Implement WAF/ModSecurity (hardened) + HashiCorp Vault for secrets
+
+IV.7 Devops ?
+
+IV.8 Data and Analytics
+// Minor: GDPR compliance features
+
+IV.9 Blockchain
+Major: Store tournament scores on the Blockchain.
+
+
+
