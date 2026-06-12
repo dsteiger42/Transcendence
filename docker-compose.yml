@@ -5,6 +5,31 @@ services:
 
   nginx:
     container_name: nginx
+    image: nginx
+    networks:
+      - transcendence
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+
+  nginx_exporter:
+    container_name: nginx_exporter
+    image: nginx/nginx-prometheus-exporter
+    networks:
+      - transcendence
+    ports:
+      - "9113:9113"
+    command:
+    - "-nginx.scrape-uri=http://nginx:80/stub_status"
+    depends_on:
+      - nginx
+    restart: unless-stopped
 
   vault:
     container_name: vault
@@ -15,7 +40,11 @@ services:
       - "8200:8200"
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID}
+    command: vault server -dev
+    cap_add:
+      - IPC_LOCK #evita que secrets sejam escritos no disco (swap), permite ao vault bloquear memória
     restart: unless-stopped
+  
   grafana:
     container_name: grafana
     image: grafana/grafana
@@ -31,6 +60,7 @@ services:
     depends_on:
       - prometheus
     restart: unless-stopped
+
   prometheus:
     container_name: prometheus
     image: prom/prometheus
@@ -54,6 +84,7 @@ services:
     volumes:
         - redis-data:/data
     restart: unless-stopped
+
   redis_exporter:
     container_name: redis_exporter
     image: oliver006/redis_exporter
