@@ -7,7 +7,7 @@ scrape_configs:
       - targets: ["prometheus:9090"]
   - job_name: "nginx"
     static_configs:
-      - targets: ["nginx:9113"]
+      - targets: ["nginx_exporter:9113"]
   - job_name: "backend"
     static_configs:
       - targets: ["backend:4000"]
