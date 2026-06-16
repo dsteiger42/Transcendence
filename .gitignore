@@ -1,3 +1,4 @@
 .env
 nginx/ssl_certificates
 vault/secrets
+nginx/certs/
