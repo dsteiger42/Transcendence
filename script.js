@@ -1,21 +1,297 @@
+// ── Dropdown toggle ──
 const avatarBtn = document.getElementById('avatarBtn');
 const dropdown = document.getElementById('dropdown');
+if (avatarBtn && dropdown) {
+    avatarBtn.addEventListener('click', () => {
+        const isOpen = dropdown.classList.toggle('open');
+        avatarBtn.setAttribute('aria-expanded', isOpen);
+    });
+    document.addEventListener('click', (e) => {
+        if (!avatarBtn.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('open');
+            avatarBtn.setAttribute('aria-expanded', false);
+        }
+    });
+}
 
-avatarBtn.addEventListener('click', () => {
-  const isOpen = dropdown.classList.toggle('open');
-  avatarBtn.setAttribute('aria-expanded', isOpen);
+// ── State ──
+let balance = 1000;
+const PAYOUT = 1.85;
+
+const fakePrices = {
+    BTC: { price: 67423.51, high: 68100.00, low: 66800.00, volume: '24.3B' },
+    ETH: { price: 3512.88, high: 3580.00, low: 3440.00, volume: '9.1B' },
+    SOL: { price: 172.44, high: 178.00, low: 169.00, volume: '2.8B' },
+    BNB: { price: 608.30, high: 615.00, low: 601.00, volume: '1.2B' },
+    XRP: { price: 0.5821, high: 0.5950, low: 0.5700, volume: '4.5B' },
+};
+
+let currentPrices = {};
+for (const coin in fakePrices) currentPrices[coin] = fakePrices[coin].price;
+
+let selectedCoin = 'BTC';
+let cycleSecond = 0;
+let bets = [];
+
+const WINDOW = 15;
+const MINUTE = 60;
+
+// ── DOM refs ──
+const priceCoin       = document.getElementById('priceCoin');
+const priceValue      = document.getElementById('priceValue');
+const priceChange     = document.getElementById('priceChange');
+const stat24hHigh     = document.getElementById('stat24hHigh');
+const stat24hLow      = document.getElementById('stat24hLow');
+const statVolume      = document.getElementById('statVolume');
+const timerLabel      = document.getElementById('timerLabel');
+const timerBar        = document.getElementById('timerBar');
+const timerCountdown  = document.getElementById('timerCountdown');
+const betUp           = document.getElementById('betUp');
+const betDown         = document.getElementById('betDown');
+const betStatus       = document.getElementById('betStatus');
+const betAmountInput  = document.getElementById('betAmount');
+const payoutWin       = document.getElementById('payoutWin');
+const navBalance      = document.getElementById('navBalance');
+const historyList     = document.getElementById('historyList');
+const activeBetsList  = document.getElementById('activeBetsList');
+const toast           = document.getElementById('toast');
+
+// ── Helpers ──
+function fmt(price) {
+    return '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+}
+
+function formatTime(s) {
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+
+function randomMove(price) {
+    return price * (1 + (Math.random() - 0.5) * 0.002);
+}
+
+function updateBalance(amount) {
+    balance += amount;
+    if (balance < 0) balance = 0;
+    navBalance.textContent = balance.toLocaleString('en-US', { minimumFractionDigits: 0 }) + ' T$';
+}
+
+function showToast(msg, type) {
+    toast.textContent = msg;
+    toast.className = 'toast ' + type + ' show';
+    setTimeout(() => { toast.className = 'toast'; }, 3500);
+}
+
+function updatePayoutDisplay() {
+    const amt = parseFloat(betAmountInput.value) || 0;
+    payoutWin.textContent = 'T$ ' + Math.floor(amt * PAYOUT).toLocaleString();
+}
+
+// ── Price display ──
+function updatePriceDisplay(coin) {
+    const price = currentPrices[coin];
+    const data = fakePrices[coin];
+    priceCoin.textContent = coin;
+    priceValue.textContent = fmt(price);
+
+    const changePct = ((price - fakePrices[coin].price) / fakePrices[coin].price * 100);
+    const sign = changePct >= 0 ? '+' : '';
+    priceChange.textContent = sign + changePct.toFixed(2) + '%';
+    priceChange.className = 'price-change ' + (changePct >= 0 ? 'up' : 'down');
+
+    stat24hHigh.textContent = fmt(data.high);
+    stat24hLow.textContent = fmt(data.low);
+    statVolume.textContent = data.volume;
+}
+
+// ── Coin selector ──
+document.querySelectorAll('.coin-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.coin-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedCoin = btn.dataset.coin;
+        updatePriceDisplay(selectedCoin);
+    });
 });
 
-document.addEventListener('click', (e) => {
-  if (!avatarBtn.contains(e.target) && !dropdown.contains(e.target)) {
-    dropdown.classList.remove('open');
-    avatarBtn.setAttribute('aria-expanded', false);
-  }
+// ── Quick amounts ──
+document.querySelectorAll('.quick-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const val = btn.dataset.amount;
+        betAmountInput.value = val === 'max' ? Math.floor(balance) : val;
+        updatePayoutDisplay();
+    });
 });
 
-avatarBtn.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    avatarBtn.click();
-  }
-});
+betAmountInput.addEventListener('input', updatePayoutDisplay);
+
+// ── Active bets renderer ──
+function renderActiveBets() {
+    activeBetsList.innerHTML = '';
+    const activeBets = bets.filter(bet => bet.status === 'active' || bet.status === 'queued');
+    if (activeBets.length === 0) return;
+
+    for (const bet of activeBets) {
+        const card = document.createElement('div');
+        card.className = 'active-bet-card';
+        card.innerHTML = `
+            <div class="side-panel-title">
+                ${bet.status === 'queued' ? 'Queued Bet' : 'Active Bet'}
+            </div>
+            <div class="active-bet-row">
+                <span class="active-bet-label">Coin</span>
+                <span class="active-bet-value">${bet.coin}</span>
+            </div>
+            <div class="active-bet-row">
+                <span class="active-bet-label">Direction</span>
+                <span class="active-bet-value ${bet.direction}">${bet.direction.toUpperCase()}</span>
+            </div>
+            <div class="active-bet-row">
+                <span class="active-bet-label">Entry price</span>
+                <span class="active-bet-value">${bet.entry ? fmt(bet.entry) : '--'}</span>
+            </div>
+            <div class="active-bet-row">
+                <span class="active-bet-label">Amount</span>
+                <span class="active-bet-value">T$ ${bet.amount.toLocaleString()}</span>
+            </div>
+            <div class="active-bet-row">
+                <span class="active-bet-label">Potential win</span>
+                <span class="active-bet-value up">T$ ${Math.floor(bet.amount * PAYOUT).toLocaleString()}</span>
+            </div>
+        `;
+        activeBetsList.appendChild(card);
+    }
+}
+
+// ── History ──
+function addHistory(coin, direction, entryPrice, exitPrice, amount, won) {
+    const empty = historyList.querySelector('.history-empty');
+    if (empty) empty.remove();
+
+    const diff = ((exitPrice - entryPrice) / entryPrice * 100);
+    const sign = diff >= 0 ? '+' : '';
+    const payout = won ? '+T$ ' + Math.floor(amount * PAYOUT) : '-T$ ' + amount;
+
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.innerHTML = `
+        <div class="history-left">
+            <span class="history-coin">${coin}</span>
+            <span class="history-direction ${direction}">${direction.toUpperCase()}</span>
+            <span class="history-move">${sign}${diff.toFixed(3)}%</span>
+        </div>
+        <span class="history-result ${won ? 'win' : 'loss'}">${payout}</span>
+    `;
+
+    historyList.insertBefore(item, historyList.firstChild);
+
+    // Keep max 8 items
+    const items = historyList.querySelectorAll('.history-item');
+    if (items.length > 8) items[items.length - 1].remove();
+}
+
+// ── Resolve ──
+function resolveBet(direction, coin, entry, exit, amount) {
+    const wentUp = exit > entry;
+    const won = (direction === 'up' && wentUp) || (direction === 'down' && !wentUp);
+
+    const diff = ((exit - entry) / entry * 100).toFixed(3);
+    const sign = wentUp ? '+' : '';
+
+    if (won) {
+        const payout = Math.floor(amount * PAYOUT);
+        updateBalance(payout);
+        showToast(`✓ WIN ${coin} +T$ ${payout}`, 'win');
+    } else {
+        showToast(`✗ LOSS ${coin} -T$ ${amount}`, 'loss');
+    }
+
+    addHistory(coin, direction, entry, exit, amount, won);
+
+    betStatus.textContent = `${coin} ${won ? 'WIN' : 'LOSS'} (${sign}${diff}%)`;
+    betStatus.className = 'bet-status active ' + (won ? 'up' : 'down');
+}
+
+// ── Place bet ──
+function placeBet(direction) {
+    const amount = parseInt(betAmountInput.value) || 100;
+
+    if (amount > balance) {
+        betStatus.textContent = 'Insufficient balance';
+        betStatus.className = 'bet-status active down';
+        return;
+    }
+
+    updateBalance(-amount);
+
+    const isQueued = cycleSecond >= WINDOW;
+    const bet = {
+        coin: selectedCoin,
+        direction,
+        amount,
+        entry: isQueued ? null : currentPrices[selectedCoin],
+        status: isQueued ? 'queued' : 'active'
+    };
+
+    bets.push(bet);
+    renderActiveBets();
+
+    if (isQueued) {
+        betStatus.textContent = `Queued: ${direction.toUpperCase()} on ${selectedCoin} (next round)`;
+    } else {
+        betStatus.textContent = `Active: ${direction.toUpperCase()} on ${selectedCoin}`;
+    }
+    betStatus.className = 'bet-status active';
+}
+
+betUp.addEventListener('click', () => placeBet('up'));
+betDown.addEventListener('click', () => placeBet('down'));
+
+// ── Main timer loop ──
+updatePriceDisplay(selectedCoin);
+updatePayoutDisplay();
+
+setInterval(() => {
+    // Tick prices and advance cycle
+    for (const coin in currentPrices) currentPrices[coin] = randomMove(currentPrices[coin]);
+    updatePriceDisplay(selectedCoin);
+
+    cycleSecond = (cycleSecond + 1) % MINUTE;
+
+    // On the turn of a new minute: resolve active bets, activate queued bets
+    if (cycleSecond === 0) {
+        for (const bet of bets) {
+            if (bet.status === 'active' && bet.entry !== null) {
+                resolveBet(bet.direction, bet.coin, bet.entry, currentPrices[bet.coin], bet.amount);
+                bet.status = 'resolved';
+            }
+        }
+        for (const bet of bets) {
+            if (bet.status === 'queued') {
+                bet.status = 'active';
+                bet.entry = currentPrices[bet.coin];
+            }
+        }
+        bets = bets.filter(b => b.status !== 'resolved');
+        renderActiveBets();
+        betStatus.textContent = '';
+        betStatus.className = 'bet-status';
+    }
+
+    const hasQueuedBet = bets.some(b => b.status === 'queued');
+
+    if (cycleSecond < WINDOW) {
+        // Betting window: bar fills left-to-right as window counts down
+        const windowProgress = (cycleSecond / WINDOW) * 100;
+        timerBar.style.width = windowProgress + '%';
+        timerBar.style.background = '#e8a020';
+        timerCountdown.textContent = formatTime(WINDOW - cycleSecond);
+        timerLabel.textContent = 'Betting window open';
+    } else {
+        // Lock period: bar drains as the minute runs out
+        const lockProgress = ((MINUTE - cycleSecond) / (MINUTE - WINDOW)) * 100;
+        timerBar.style.width = lockProgress + '%';
+        timerBar.style.background = '#2e3347';
+        timerCountdown.textContent = formatTime(MINUTE - cycleSecond);
+        timerLabel.textContent = hasQueuedBet ? 'Bet queued for next round' : 'Betting on next round';
+    }
+}, 1000);
