@@ -1,7 +1,7 @@
 services:
-  backend:
+  #backend:
   
-  frontend:
+  #frontend:
 
   nginx:
     container_name: nginx
@@ -14,9 +14,9 @@ services:
     volumes:
       - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/certs:/etc/nginx/certs
-    depends_on:
-      - backend
-      - frontend
+    #depends_on:
+    #  - backend
+    #  - frontend
     restart: unless-stopped
 
   nginx_exporter:
@@ -41,6 +41,13 @@ services:
       - "8200:8200"
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID}
+      VAULT_DEV_LISTEN_ADDRESS: ${VAULT_DEV_LISTEN_ADDRESS}
+      VAULT_ADDR: ${VAULT_ADDR}
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     command: vault server -dev
     cap_add:
       - IPC_LOCK #evita que secrets sejam escritos no disco (swap), permite ao vault bloquear memória
@@ -57,7 +64,7 @@ services:
       GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD} 
     volumes:
-      - grafana-db:/var/lib/grafana/grafana.db
+      - grafana-db:/var/lib/grafana/
     depends_on:
       - prometheus
     restart: unless-stopped
@@ -101,7 +108,7 @@ services:
 
   postgres:
       container_name: postgres
-      image: postgres
+      image: postgres:16
       networks:
         - transcendence
       ports:
