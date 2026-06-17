@@ -17,6 +17,12 @@ services:
     #depends_on:
     #  - backend
     #  - frontend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/stub_status"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   nginx_exporter:
@@ -29,7 +35,9 @@ services:
     command:
     - "-nginx.scrape-uri=http://nginx:80/stub_status"
     depends_on:
-      - nginx
+      nginx:
+        condition: service_healthy
+
     restart: unless-stopped
 
   vault:
@@ -48,6 +56,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+      start_period: 10s
     command: vault server -dev
     cap_add:
       - IPC_LOCK #evita que secrets sejam escritos no disco (swap), permite ao vault bloquear memória
@@ -66,7 +75,8 @@ services:
     volumes:
       - grafana-db:/var/lib/grafana/
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_healthy
     restart: unless-stopped
 
   prometheus:
@@ -79,6 +89,12 @@ services:
     volumes:
       - prometheus-data:/var/lib/prometheus/data
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   redis:
@@ -91,6 +107,12 @@ services:
       - "6379:6379"
     volumes:
         - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   redis_exporter:
@@ -103,7 +125,8 @@ services:
     ports:
       - "9121:9121"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
   postgres:
@@ -119,6 +142,12 @@ services:
         POSTGRES_DB: ${POSTGRES_DB}
       volumes:
         - postgres-data:/var/lib/postgresql/data
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+        interval: 5s
+        timeout: 3s
+        retries: 5
+        start_period: 10s
       restart: unless-stopped
 
   postgres_exporter:
@@ -131,7 +160,8 @@ services:
       ports:
         - "9187:9187"
       depends_on: 
-        - postgres
+        postgres:
+          condition: service_healthy
       restart: unless-stopped
     
 volumes:
