@@ -51,6 +51,8 @@ services:
       VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID}
       VAULT_DEV_LISTEN_ADDRESS: ${VAULT_DEV_LISTEN_ADDRESS}
       VAULT_ADDR: ${VAULT_ADDR}
+    volumes:
+      - ./vault/config:/etc/vault/config
     healthcheck:
       test: ["CMD", "vault", "status"]
       interval: 5s
@@ -62,6 +64,25 @@ services:
       - IPC_LOCK #evita que secrets sejam escritos no disco (swap), permite ao vault bloquear memória
     restart: unless-stopped
   
+  vault_init:
+    container_name: vault_init
+    image: hashicorp/vault
+    networks:
+      - transcendence
+    environment:
+      VAULT_TOKEN: ${VAULT_DEV_ROOT_TOKEN_ID}
+      VAULT_ADDR: http://vault:8200
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    entrypoint: ["sh", "/etc/vault/config/vault-init.sh"]
+    volumes:
+      - ./vault/config:/etc/vault/config
+    depends_on:
+      vault:
+        condition: service_healthy
+    restart: on-failure
+
   grafana:
     container_name: grafana
     image: grafana/grafana
@@ -100,15 +121,15 @@ services:
   redis:
     container_name: redis
     image: redis
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     networks:
       - transcendence
     ports:
       - "6379:6379"
     volumes:
-        - redis-data:/data
+      - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -122,6 +143,7 @@ services:
       - transcendence
     environment:
       REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - "9121:9121"
     depends_on:
