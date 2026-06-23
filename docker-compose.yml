@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nestjs_backend
+    ports:
+      - "3000:3000"
+    volumes:
+      # Sincroniza a pasta local backend com a pasta do contentor
+      - ./backend:/usr/src/app
+      # Linha CRÍTICA: Impede que o volume local apague os node_modules instalados dentro do contentor
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+      # Exemplo de variáveis de ambiente para a base de dados que vais ligar a seguir
+      - DATABASE_HOST=postgres_db
+      - DATABASE_PORT=5432
+      - DATABASE_USER=root
+      - DATABASE_PASSWORD=root_pass
+      - DATABASE_NAME=transcendence_db
+    networks:
+      - transcendence_net
+
+# Configuração opcional se já quiseres deixar a rede estruturada para o Nginx e Base de Dados
+networks:
+  transcendence_net:
+    driver: bridge
