@@ -5,14 +5,14 @@ services:
 
   nginx:
     container_name: nginx
-    image: nginx
+    image: owasp/modsecurity-crs:4-nginx-202606261106
     networks:
       - transcendence
     ports:
       - "443:443"
       - "80:80"
     volumes:
-      - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/template/nginx.conf.template:/etc/nginx/templates/nginx.conf.template
       - ./nginx/certs:/etc/nginx/certs
     #depends_on:
     #  - backend
@@ -23,6 +23,8 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
+    environment:
+      BACKEND: ${BACKEND}
     restart: unless-stopped
 
   nginx_exporter:

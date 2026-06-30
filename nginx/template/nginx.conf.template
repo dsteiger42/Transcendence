@@ -1,3 +1,5 @@
+load_module modules/ngx_http_modsecurity_module.so;
+
 events {}
 
 http {
@@ -33,6 +35,9 @@ http {
         ssl_certificate /etc/nginx/certs/nginx.cert;
         ssl_certificate_key /etc/nginx/certs/nginx.key;
 
+        modsecurity on;
+        modsecurity_rules_file /etc/nginx/modsecurity.d/modsecurity.conf;
+
         #location / {
         #    proxy_pass http://frontend:3000;
         #}
@@ -46,6 +51,8 @@ http {
         #    proxy_set_header Upgrade $http_upgrade;
         #    proxy_set_header Connection "upgrade";
         #}
+
+        
 
     }
 }
