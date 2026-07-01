@@ -1,6 +1,15 @@
-// ── Dropdown toggle ──
+/*
+TODO - the page does not yet have a PROFILE button. Only login/register
+dropdown menu that opens when the user clicks in the profile.
+It references two HTML elements
+*/
+// textContent returns the text inside the element
+// document is an object provided by the browser. It represents the entire HTML page that is currently loaded
+// document.querySelectorAll() is a method that searches the HTML page and returns all elements that match a CSS selector.
+
 const avatarBtn = document.getElementById('avatarBtn');
 const dropdown = document.getElementById('dropdown');
+// if these two elements exist, add event listeners
 if (avatarBtn && dropdown) {
     avatarBtn.addEventListener('click', () => {
         const isOpen = dropdown.classList.toggle('open');
@@ -26,6 +35,7 @@ const fakePrices = {
     XRP: { price: 0.5821, high: 0.5950, low: 0.5700, volume: '4.5B' },
 };
 
+// create an object "current prices" that stores the price of each Coin
 let currentPrices = {};
 for (const coin in fakePrices) currentPrices[coin] = fakePrices[coin].price;
 
@@ -36,7 +46,7 @@ let bets = [];
 const WINDOW = 15;
 const MINUTE = 60;
 
-// ── DOM refs ──
+// Grab this element from the HTML file, so I can control it
 const priceCoin       = document.getElementById('priceCoin');
 const priceValue      = document.getElementById('priceValue');
 const priceChange     = document.getElementById('priceChange');
@@ -57,36 +67,44 @@ const activeBetsList  = document.getElementById('activeBetsList');
 const toast           = document.getElementById('toast');
 
 // ── Helpers ──
+// toLocaleString builtin JS function to format numbers according to a country's conventions
 function fmt(price) {
     return '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 }
 
+// converts seconds into clock time. Ex: 75secs = 1
 function formatTime(s) {
     return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
+// TODELETE: random number generator to simulate the market
 function randomMove(price) {
     return price * (1 + (Math.random() - 0.5) * 0.002);
 }
 
+// updates the balance
 function updateBalance(amount) {
     balance += amount;
-    if (balance < 0) balance = 0;
+    if (balance < 0)
+        balance = 0;
     navBalance.textContent = balance.toLocaleString('en-US', { minimumFractionDigits: 0 }) + ' T$';
 }
 
+// small temporary message that says if you won or lost
 function showToast(msg, type) {
     toast.textContent = msg;
     toast.className = 'toast ' + type + ' show';
     setTimeout(() => { toast.className = 'toast'; }, 3500);
 }
 
+// "amt" becomes either the value of the bet or 0
+// updates the payout display in case the user changes the bet value. Ex: bet=100 -> payout=185. User changes bet=200 -> payout 370
 function updatePayoutDisplay() {
     const amt = parseFloat(betAmountInput.value) || 0;
     payoutWin.textContent = 'T$ ' + Math.floor(amt * PAYOUT).toLocaleString();
 }
 
-// ── Price display ──
+// updates everything that depends on the coin
 function updatePriceDisplay(coin) {
     const price = currentPrices[coin];
     const data = fakePrices[coin];
@@ -97,13 +115,13 @@ function updatePriceDisplay(coin) {
     const sign = changePct >= 0 ? '+' : '';
     priceChange.textContent = sign + changePct.toFixed(2) + '%';
     priceChange.className = 'price-change ' + (changePct >= 0 ? 'up' : 'down');
-
     stat24hHigh.textContent = fmt(data.high);
     stat24hLow.textContent = fmt(data.low);
     statVolume.textContent = data.volume;
 }
 
-// ── Coin selector ──
+// Adds click handlers to the quick amount buttons to automatically
+// fill the bet input with a preset amount and recalculate the payout.
 document.querySelectorAll('.coin-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.coin-btn').forEach(b => b.classList.remove('active'));
@@ -122,9 +140,11 @@ document.querySelectorAll('.quick-btn').forEach(btn => {
     });
 });
 
+// Updates the payout whenever the user changes the bet amount.
 betAmountInput.addEventListener('input', updatePayoutDisplay);
 
-// ── Active bets renderer ──
+// Side panel showing the active bets
+// activeBetsList.innerHTML = '' -> clears the displayed bets before redrawing
 function renderActiveBets() {
     activeBetsList.innerHTML = '';
     const activeBets = bets.filter(bet => bet.status === 'active' || bet.status === 'queued');
@@ -162,7 +182,7 @@ function renderActiveBets() {
     }
 }
 
-// ── History ──
+// This function records a finished bet in the history panel
 function addHistory(coin, direction, entryPrice, exitPrice, amount, won) {
     const empty = historyList.querySelector('.history-empty');
     if (empty) empty.remove();
@@ -173,23 +193,19 @@ function addHistory(coin, direction, entryPrice, exitPrice, amount, won) {
 
     const item = document.createElement('div');
     item.className = 'history-item';
-    item.innerHTML = `
-        <div class="history-left">
+    item.innerHTML = `<div class="history-left">
             <span class="history-coin">${coin}</span>
             <span class="history-direction ${direction}">${direction.toUpperCase()}</span>
             <span class="history-move">${sign}${diff.toFixed(3)}%</span>
         </div>
-        <span class="history-result ${won ? 'win' : 'loss'}">${payout}</span>
-    `;
-
+        <span class="history-result ${won ? 'win' : 'loss'}">${payout}</span>`;
     historyList.insertBefore(item, historyList.firstChild);
-
     // Keep max 8 items
     const items = historyList.querySelectorAll('.history-item');
     if (items.length > 8) items[items.length - 1].remove();
 }
 
-// ── Resolve ──
+// This function decides whether the player won or lost
 function resolveBet(direction, coin, entry, exit, amount) {
     const wentUp = exit > entry;
     const won = (direction === 'up' && wentUp) || (direction === 'down' && !wentUp);
@@ -201,7 +217,8 @@ function resolveBet(direction, coin, entry, exit, amount) {
         const payout = Math.floor(amount * PAYOUT);
         updateBalance(payout);
         showToast(`✓ WIN ${coin} +T$ ${payout}`, 'win');
-    } else {
+    }
+    else {
         showToast(`✗ LOSS ${coin} -T$ ${amount}`, 'loss');
     }
 
@@ -211,7 +228,7 @@ function resolveBet(direction, coin, entry, exit, amount) {
     betStatus.className = 'bet-status active ' + (won ? 'up' : 'down');
 }
 
-// ── Place bet ──
+// Creates a new bet when the user clicks UP or DOWN
 function placeBet(direction) {
     const amount = parseInt(betAmountInput.value) || 100;
 
@@ -220,9 +237,7 @@ function placeBet(direction) {
         betStatus.className = 'bet-status active down';
         return;
     }
-
     updateBalance(-amount);
-
     const isQueued = cycleSecond >= WINDOW;
     const bet = {
         coin: selectedCoin,
@@ -231,10 +246,8 @@ function placeBet(direction) {
         entry: isQueued ? null : currentPrices[selectedCoin],
         status: isQueued ? 'queued' : 'active'
     };
-
     bets.push(bet);
     renderActiveBets();
-
     if (isQueued) {
         betStatus.textContent = `Queued: ${direction.toUpperCase()} on ${selectedCoin} (next round)`;
     } else {
@@ -243,20 +256,20 @@ function placeBet(direction) {
     betStatus.className = 'bet-status active';
 }
 
+// event listeners for clicking UP and DOWN
 betUp.addEventListener('click', () => placeBet('up'));
 betDown.addEventListener('click', () => placeBet('down'));
 
-// ── Main timer loop ──
 updatePriceDisplay(selectedCoin);
 updatePayoutDisplay();
 
+// main game loop. Runs once every second(1000 milisecs) and updates the entire game
 setInterval(() => {
     // Tick prices and advance cycle
-    for (const coin in currentPrices) currentPrices[coin] = randomMove(currentPrices[coin]);
+    for (const coin in currentPrices)
+        currentPrices[coin] = randomMove(currentPrices[coin]);
     updatePriceDisplay(selectedCoin);
-
     cycleSecond = (cycleSecond + 1) % MINUTE;
-
     // On the turn of a new minute: resolve active bets, activate queued bets
     if (cycleSecond === 0) {
         for (const bet of bets) {
@@ -276,9 +289,7 @@ setInterval(() => {
         betStatus.textContent = '';
         betStatus.className = 'bet-status';
     }
-
     const hasQueuedBet = bets.some(b => b.status === 'queued');
-
     if (cycleSecond < WINDOW) {
         // Betting window: bar fills left-to-right as window counts down
         const windowProgress = (cycleSecond / WINDOW) * 100;
