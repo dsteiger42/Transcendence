@@ -1,14 +1,8 @@
-load_module modules/ngx_http_modsecurity_module.so;
-
-events {}
-
-http {
-
     server {
-        listen 80;
-        listen [::]:80;
+        listen ${PORT};
+        listen [::]:${PORT};
 
-        server_name Transcendence;
+        server_name ${SERVER_NAME};
 
         location / {
             return 301 https://$host$request_uri;
@@ -25,18 +19,17 @@ http {
     }
 
     server {
-        listen 443 ssl;
-        listen [::]:443 ssl;
+        listen ${SSL_PORT} ssl;
+        listen [::]:${SSL_PORT} ssl;
 
-        server_name Transcendence;
+        server_name  ${SERVER_NAME};
 
-        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_protocols ${SSL_PROTOCOLS};
 
-        ssl_certificate /etc/nginx/certs/nginx.cert;
-        ssl_certificate_key /etc/nginx/certs/nginx.key;
+        ssl_certificate   ${SSL_CERT_FILE};
+        ssl_certificate_key ${SSL_CERT_KEY_FILE};
 
         modsecurity on;
-        modsecurity_rules_file /etc/nginx/modsecurity.d/modsecurity.conf;
 
         #location / {
         #    proxy_pass http://frontend:3000;
@@ -55,4 +48,3 @@ http {
         
 
     }
-}

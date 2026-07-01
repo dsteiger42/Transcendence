@@ -12,7 +12,7 @@ services:
       - "443:443"
       - "80:80"
     volumes:
-      - ./nginx/template/nginx.conf.template:/etc/nginx/templates/nginx.conf.template
+      - ./nginx/template/default.conf.template:/etc/nginx/templates/conf.d/default.conf.template
       - ./nginx/certs:/etc/nginx/certs
     #depends_on:
     #  - backend
@@ -25,6 +25,12 @@ services:
       start_period: 10s
     environment:
       BACKEND: ${BACKEND}
+      SSL_CERT_FILE: /etc/nginx/certs/nginx.cert
+      SSL_CERT_KEY_FILE: /etc/nginx/certs/nginx.key
+      SSL_PORT: 443
+      PORT: 80
+      SERVER_NAME: Transcendence
+      SSL_PROTOCOLS: TLSv1.2 TLSv1.3  
     restart: unless-stopped
 
   nginx_exporter:
