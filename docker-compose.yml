@@ -133,7 +133,7 @@ services:
     networks:
       - transcendence
     ports:
-      - "6379:6379"
+      - "6380:6380"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -150,7 +150,7 @@ services:
     networks:
       - transcendence
     environment:
-      REDIS_ADDR: redis:6379
+      REDIS_ADDR: redis:6380
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - "9121:9121"
