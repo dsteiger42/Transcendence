@@ -1,44 +1,139 @@
 services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: nestjs_backend
-    ports:
-      - "3000:3000"
-    expose:
-      - "3000"
-    volumes:
-      - ./backend:/usr/src/app
-      - /usr/src/app/node_modules
-    environment:
-      - NODE_ENV=development
-      - DATABASE_HOST=postgres_db
-      - DATABASE_PORT=5432
-      - DATABASE_USER=root
-      - DATABASE_PASSWORD=root_pass
-      - DATABASE_NAME=transcendence_db
-    networks:
-      - transcendence_net
+  
+  frontend:
 
   nginx:
-    build:
-      context: .
-      dockerfile: ./nginx/Dockerfile
-    container_name: nginx_proxy
+    container_name: nginx
+    image: nginx
+    networks:
+      - transcendence
     ports:
-      - "80:80"
       - "443:443"
-    # Nota: Em produção, você pode remover os volumes abaixo porque o Dockerfile 
-    # já copia os arquivos para dentro da imagem. Para desenvolvimento local, 
-    # manter o volume do nginx.conf é útil se você quiser alterar o arquivo e ver o resultado na hora.
+      - "80:80"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/certs:/etc/nginx/certs
     depends_on:
       - backend
+      - frontend
+    restart: unless-stopped
+
+  nginx_exporter:
+    container_name: nginx_exporter
+    image: nginx/nginx-prometheus-exporter
     networks:
-      - transcendence_net
+      - transcendence
+    ports:
+      - "9113:9113"
+    command:
+    - "-nginx.scrape-uri=http://nginx:80/stub_status"
+    depends_on:
+      - nginx
+    restart: unless-stopped
+
+  vault:
+    container_name: vault
+    image: hashicorp/vault
+    networks:
+      - transcendence
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID}
+    command: vault server -dev
+    cap_add:
+      - IPC_LOCK #evita que secrets sejam escritos no disco (swap), permite ao vault bloquear memória
+    restart: unless-stopped
+  
+  grafana:
+    container_name: grafana
+    image: grafana/grafana
+    networks:
+      - transcendence
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD} 
+    volumes:
+      - grafana-db:/var/lib/grafana/grafana.db
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus
+    networks:
+      - transcendence
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus-data:/var/lib/prometheus/data
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: unless-stopped
+
+  redis:
+    container_name: redis
+    image: redis
+    command: redis-server --appendonly yes
+    networks:
+      - transcendence
+    ports:
+      - "6379:6379"
+    volumes:
+        - redis-data:/data
+    restart: unless-stopped
+
+  redis_exporter:
+    container_name: redis_exporter
+    image: oliver006/redis_exporter
+    networks:
+      - transcendence
+    environment:
+      REDIS_ADDR: redis:6379
+    ports:
+      - "9121:9121"
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  postgres:
+      container_name: postgres
+      image: postgres
+      networks:
+        - transcendence
+      ports:
+        - "5432:5432"
+      environment:
+        POSTGRES_USER: ${POSTGRES_USER}
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        POSTGRES_DB: ${POSTGRES_DB}
+      volumes:
+        - postgres-data:/var/lib/postgresql/data
+      restart: unless-stopped
+
+  postgres_exporter:
+      container_name: postgres_exporter
+      image: prometheuscommunity/postgres-exporter
+      networks:
+        - transcendence
+      environment:
+        DATA_SOURCE_NAME: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      ports:
+        - "9187:9187"
+      depends_on: 
+        - postgres
+      restart: unless-stopped
+    
+volumes:
+  grafana-db:
+  prometheus-data:
+  redis-data:
+  postgres-data:
+
 
 networks:
-  transcendence_net:
+  transcendence:
     driver: bridge
