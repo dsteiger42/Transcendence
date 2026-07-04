@@ -21,5 +21,6 @@ EXPOSE 3000
 
 # criacao de recursos para diferete users
 RUN nest g resource users
+
 # 8. Comando para iniciar o Nest em modo watch (hot-reload em tempo real)
 CMD ["npm", "run", "start:dev"]

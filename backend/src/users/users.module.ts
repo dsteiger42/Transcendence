@@ -4,4 +4,6 @@ import { Module } from '@nestjs/common';
   controllers: [],
   providers: [],
 })
-export class UsersModule {} // Este nome tem de coincidir com o import do app.module
+export class UsersModule {
+	
+} // Este nome tem de coincidir com o import do app.module
