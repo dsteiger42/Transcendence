@@ -1,0 +1,13 @@
+/*
+Vite: dev server that updates the browser instantly when files change, no full rebuild needed.
+Just like NGINX, VITE is a server (although NGINX serves real users in production, Vite's dev server doesn't)
+but since its a devepolment tool, it lets you preview your app while building it.
+While you're building: (npm run dev) — a live preview window so you can see the project evolve in real time as you code.
+When you're done: (npm run build) — Vite switches roles and becomes a packager. It takes all your JSX/CSS/JS, transforms it, 
+and spits out plain static files (HTML/CSS/JS) into a dist/ folder.
+*/
+
+/*
+.jsx files are like .js files but they let you write HTML-like syntax
+mixed with JS. Under the hood, it compiles down to regular JS.
+*/
