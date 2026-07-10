@@ -9,8 +9,8 @@ services:
     networks:
       - transcendence
     ports:
-      - "443:443"
-      - "80:80"
+      - "443:8443"
+      - "80:8080"
     volumes:
       - ./nginx/template/default.conf.template:/etc/nginx/templates/conf.d/default.conf.template
       - ./nginx/certs:/etc/nginx/certs
@@ -18,7 +18,7 @@ services:
     #  - backend
     #  - frontend
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/stub_status"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/stub_status"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -27,8 +27,8 @@ services:
       BACKEND: ${BACKEND}
       SSL_CERT_FILE: /etc/nginx/certs/nginx.cert
       SSL_CERT_KEY_FILE: /etc/nginx/certs/nginx.key
-      SSL_PORT: 443
-      PORT: 80
+      SSL_PORT: 8443
+      PORT: 8080
       SERVER_NAME: Transcendence
       SSL_PROTOCOLS: TLSv1.2 TLSv1.3  
     restart: unless-stopped
@@ -41,7 +41,7 @@ services:
     ports:
       - "9113:9113"
     command:
-    - "-nginx.scrape-uri=http://nginx:80/stub_status"
+    - "-nginx.scrape-uri=http://nginx:8080/stub_status"
     depends_on:
       nginx:
         condition: service_healthy
@@ -133,7 +133,7 @@ services:
     networks:
       - transcendence
     ports:
-      - "6380:6380"
+      - "6379:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -150,7 +150,7 @@ services:
     networks:
       - transcendence
     environment:
-      REDIS_ADDR: redis:6380
+      REDIS_ADDR: redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - "9121:9121"
