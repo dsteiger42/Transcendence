@@ -2,16 +2,18 @@ services:
   backend:
     build: ./backend
     container_name: backend
+    ports:
+      - "8000:8000"
     networks:
       - transcendence
     restart: unless-stopped
   
-  #frontend:
-  #  build: ./frontend
-  #  container_name: frontend
-  #  nexxtworks:
-  #    - transcendence
-  #  restart: unless-stopped
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    networks:
+      - transcendence
+    restart: unless-stopped
   
   nginx:
     container_name: nginx
@@ -22,12 +24,13 @@ services:
       - "443:443"
       - "80:80"
     volumes:
-      - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/conf/nginx.conf:/etc/nginx/conf.d/default.conf
+      #- ./nginx/conf/nginx.conf:/etc/nginx/conf
+      #- ./nginx/certs:/etc/nginx/certs
+      - ./nginx/conf/nginx.conf:/etc/nginx/conf
       - ./nginx/certs:/etc/nginx/certs
     depends_on:
       - backend
-  #    - frontend
+      - frontend
     restart: unless-stopped
 
   nginx_exporter:

@@ -1,0 +1,637 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #0d0f14;
+  font-family: 'Courier New', Courier, monospace;
+  min-height: 100vh;
+}
+
+
+/* ════════════════════════════════════════════
+   NAVBAR
+   The top bar containing the logo, icon
+   buttons (search/settings), balance display,
+   and login/register buttons.
+   ════════════════════════════════════════════ */
+
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  height: 64px;
+  background: #0d0f14;
+  border-bottom: 1px solid #1e2330;
+  position: relative;
+}
+
+/* "TRANSCENDENCE Beta" top-left wordmark */
+.logo {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #f5f5f5;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+/* Orange "Beta" pill next to the logo */
+.logo-tag {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: #e8a020;
+  text-transform: uppercase;
+  border: 1px solid #e8a020;
+  padding: 2px 6px;
+  border-radius: 3px;
+  position: relative;
+  top: -2px;
+}
+
+/* Wrapper for everything on the right side of the navbar */
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Search + Settings icon button group */
+.nav-icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Individual icon buttons (search, settings) */
+.nav-icon-btn {
+  background: none;
+  border: none;
+  color: #8892aa;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.nav-icon-btn:hover {
+  color: #e8a020;
+  background: #1a1d26;
+}
+
+/* Thin vertical line separating navbar sections */
+.nav-divider {
+  width: 1px;
+  height: 24px;
+  background: #2e3347;
+  margin: 0 4px;
+}
+
+/* Balance display ("Balance / 1,000 T$") */
+.nav-balance {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  padding: 0 6px;
+}
+
+.nav-balance-label {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #4a5268;
+}
+
+.nav-balance-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e8a020;
+  letter-spacing: 0.06em;
+}
+
+/* Shared base for Login and Register buttons */
+.nav-btn {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 8px 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+/* "Login" — outlined ghost style */
+.nav-btn--ghost {
+  background: none;
+  border: 1.5px solid #2e3347;
+  color: #8892aa;
+}
+
+.nav-btn--ghost:hover {
+  border-color: #e8a020;
+  color: #e8a020;
+}
+
+/* "Register" — filled solid style */
+.nav-btn--solid {
+  background: #e8a020;
+  border: 1.5px solid #e8a020;
+  color: #0d0f14;
+}
+
+.nav-btn--solid:hover {
+  background: #f5b030;
+  border-color: #f5b030;
+}
+
+
+/* ════════════════════════════════════════════
+   PAGE LAYOUT
+   Two-column grid: betting panel on the left,
+   active bets + history on the right.
+   ════════════════════════════════════════════ */
+
+.page-content {
+  padding: 28px 2rem;
+  min-height: calc(100vh - 64px);
+}
+
+.trading-layout {
+  display: grid;
+  grid-template-columns: 480px 1fr;
+  gap: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+
+/* ════════════════════════════════════════════
+   LEFT PANEL — BETTING PANEL
+   Contains the coin selector, price display,
+   stats, timer, and the bet input + UP/DOWN
+   buttons.
+   ════════════════════════════════════════════ */
+
+.trading-panel {
+  background: #13151e;
+  border: 1px solid #1e2330;
+  border-radius: 8px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* BTC / ETH / SOL / BNB / XRP tab row */
+.coin-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.coin-btn {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 6px 14px;
+  border-radius: 4px;
+  border: 1px solid #2e3347;
+  background: none;
+  color: #8892aa;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.coin-btn:hover { border-color: #e8a020; color: #e8a020; }
+/* Highlighted state for the currently selected coin */
+.coin-btn.active { border-color: #e8a020; background: #e8a020; color: #0d0f14; }
+
+/* Large price readout: "BTC  $67,423.51  +0.12%" */
+.price-display {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.price-coin {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #8892aa;
+}
+
+.price-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #f5f5f5;
+  letter-spacing: 0.04em;
+}
+
+/* Percentage change — green if up, red if down */
+.price-change { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; }
+.price-change.up { color: #2ea84b; }
+.price-change.down { color: #e05252; }
+
+/* 24H High / 24H Low / Volume stat row */
+.coin-stats {
+  display: flex;
+  gap: 0;
+  border: 1px solid #1e2330;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  border-right: 1px solid #1e2330;
+}
+
+.stat:last-child { border-right: none; }
+
+.stat-label {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #4a5268;
+}
+
+.stat-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f5f5f5;
+  letter-spacing: 0.04em;
+}
+
+.stat-value.up { color: #2ea84b; }
+.stat-value.down { color: #e05252; }
+
+
+/* ════════════════════════════════════════════
+   TIMER
+   Shows the current betting window countdown
+   (orange, 0–15 s) or lock period (dark,
+   15–60 s) with a shrinking/growing bar.
+   ════════════════════════════════════════════ */
+
+.timer-section { display: flex; flex-direction: column; gap: 8px; }
+
+.timer-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+/* "Betting window open" / "Betting on next round" label */
+.timer-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #8892aa;
+}
+
+/* Large countdown number (e.g. "0:12") */
+.timer-countdown {
+  font-size: 22px;
+  font-weight: 700;
+  color: #f5f5f5;
+  letter-spacing: 0.08em;
+}
+
+/* Track behind the progress bar */
+.timer-bar-wrapper {
+  width: 100%;
+  height: 4px;
+  background: #1a1d26;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+/* The moving bar — width and color are updated by JS each second */
+.timer-bar {
+  height: 100%;
+  width: 100%;
+  background: #e8a020;
+  border-radius: 2px;
+  transition: width 1s linear, background 0.3s;
+}
+
+
+/* ════════════════════════════════════════════
+   BET INPUT SECTION
+   Amount field with quick-select buttons,
+   payout preview, and the UP / DOWN bet
+   buttons.
+   ════════════════════════════════════════════ */
+
+.bet-section { display: flex; flex-direction: column; gap: 14px; }
+
+/* "Bet amount" field label */
+.bet-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #8892aa;
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* 50 / 100 / 250 / 500 / MAX quick-fill buttons */
+.quick-amounts {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.quick-btn {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 5px 10px;
+  border-radius: 3px;
+  border: 1px solid #2e3347;
+  background: none;
+  color: #8892aa;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.quick-btn:hover { border-color: #e8a020; color: #e8a020; }
+
+/* "T$ | <number input>" compound field */
+.bet-input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid #2e3347;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #0d0f14;
+}
+
+/* "T$" currency prefix inside the input */
+.bet-currency {
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #e8a020;
+  letter-spacing: 0.08em;
+  border-right: 1px solid #2e3347;
+  user-select: none;
+}
+
+/* The actual number input */
+.bet-input {
+  flex: 1;
+  padding: 10px 12px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f5f5f5;
+  background: none;
+  border: none;
+  outline: none;
+  letter-spacing: 0.05em;
+}
+
+/* "Payout: x1.85 · Win: T$ 185" preview line */
+.payout-info {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #4a5268;
+  text-transform: uppercase;
+}
+
+.payout-multiplier { color: #e8a020; font-weight: 700; }
+.payout-win { color: #f5f5f5; font-weight: 700; }
+
+/* UP and DOWN bet buttons side by side */
+.bet-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.bet-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.bet-btn:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
+.bet-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+/* Green UP button */
+.bet-up { background: #2ea84b; color: #fff; }
+/* Red DOWN button */
+.bet-down { background: #e05252; color: #fff; }
+
+/* Status line below buttons: e.g. "Active: UP on BTC" or "Insufficient balance" */
+.bet-status {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8892aa;
+  min-height: 18px;
+  text-align: center;
+}
+
+.bet-status.active.up { color: #2ea84b; }
+.bet-status.active.down { color: #e05252; }
+
+
+/* ════════════════════════════════════════════
+   RIGHT PANEL — ACTIVE BETS + HISTORY
+   Stacks the dynamically rendered active/
+   queued bet cards above the recent results
+   history list.
+   ════════════════════════════════════════════ */
+
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Section heading used inside both active-bet cards and the history panel */
+.side-panel-title {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #4a5268;
+  margin-bottom: 14px;
+}
+
+/* ── Active / Queued bet card ── */
+/* One card is rendered per active or queued bet by renderActiveBets() in JS */
+.active-bet-card {
+  background: #13151e;
+  border: 1px solid #1e2330;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+/* Each label/value row inside an active bet card */
+.active-bet-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #1a1d26;
+}
+
+.active-bet-row:last-child { border-bottom: none; }
+
+.active-bet-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #4a5268;
+}
+
+.active-bet-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f5f5f5;
+  letter-spacing: 0.05em;
+}
+
+.active-bet-value.up { color: #2ea84b; }
+.active-bet-value.down { color: #e05252; }
+
+/* ── Recent Results history list ── */
+.history-panel {
+  background: #13151e;
+  border: 1px solid #1e2330;
+  border-radius: 8px;
+  padding: 20px;
+  flex: 1;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Placeholder shown before any bets have been placed */
+.history-empty {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #2e3347;
+  text-align: center;
+  padding: 20px 0;
+}
+
+/* Individual resolved-bet row: coin · direction · % move · payout */
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 5px;
+  background: #0d0f14;
+  border: 1px solid #1e2330;
+}
+
+.history-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.history-coin {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #f5f5f5;
+}
+
+/* "UP" / "DOWN" badge inside a history row */
+.history-direction {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+
+.history-direction.up { background: rgba(46,168,75,0.15); color: #2ea84b; }
+.history-direction.down { background: rgba(224,82,82,0.15); color: #e05252; }
+
+/* Price movement percentage (e.g. "+0.043%") */
+.history-move {
+  font-size: 10px;
+  color: #4a5268;
+  letter-spacing: 0.06em;
+}
+
+/* Win/loss payout amount on the right of each history row */
+.history-result {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.history-result.win { color: #2ea84b; }
+.history-result.loss { color: #e05252; }
+
+
+/* ════════════════════════════════════════════
+   TOAST NOTIFICATION
+   Slides up from the bottom-right corner to
+   confirm a win or loss after a round ends.
+   ════════════════════════════════════════════ */
+
+.toast {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  padding: 14px 20px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+  z-index: 999;
+}
+
+.toast.show { opacity: 1; transform: translateY(0); }
+/* Win toast — green */
+.toast.win { background: #1a3d24; border: 1px solid #2ea84b; color: #2ea84b; }
+/* Loss toast — red */
+.toast.loss { background: #3d1a1a; border: 1px solid #e05252; color: #e05252; }

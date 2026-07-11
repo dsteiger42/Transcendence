@@ -17,7 +17,7 @@ RUN npm install
 COPY . .
 
 # 7. Expor a porta que o teu NestJS vai usar (porta 3000)
-EXPOSE 3000
+EXPOSE 8000
 
 # criacao de recursos para diferete users
 RUN nest g resource users
