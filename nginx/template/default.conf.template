@@ -1,3 +1,4 @@
+
     server {
         listen ${PORT};
         listen [::]:${PORT};
@@ -31,19 +32,19 @@
 
         modsecurity on;
 
-        #location / {
-        #    proxy_pass http://frontend:3000;
-        #}
+        location / {
+            proxy_pass http://frontend:3000;
+        }
 
-        #location /api/ {
-        #    proxy_pass http://backend:8000;
-        #}
+        location /api/ {
+            proxy_pass http://backend:8000;
+        }
 
-        #location /ws {
-        #    proxy_pass http://backend:8000;
-        #    proxy_set_header Upgrade $http_upgrade;
-        #    proxy_set_header Connection "upgrade";
-        #}
+        location /ws {
+            proxy_pass http://backend:8000;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+        }
 
         
 
