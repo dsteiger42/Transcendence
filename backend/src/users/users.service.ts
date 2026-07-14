@@ -2,12 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from './create-user.dto';
 
 export interface Users {
-  id: number;
-  username: string;
-  email: string;
-  password: string;
-  wallet: number;
+	id: number;
+	username: string;
+	email: string;
+	password: string;      // hash da password
+	wallet: number;
+	avatar: string;
+	wins: number;
+	losses: number;
+	createdAt: Date;
+	updatedAt: Date;
 }
+
 
 @Injectable()
 export class UsersService {

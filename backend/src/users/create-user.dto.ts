@@ -13,4 +13,13 @@ export class CreateUserDto {
   
   @IsNumber()
   wallet: number;
+
+  @IsString()
+  avatar: string;
+
+  wins: number;
+  losses: number;
+  createdAt: Date;
+  updatedAt: Date;
+
 }
