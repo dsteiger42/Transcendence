@@ -1,36 +1,61 @@
 services:
-  backend:
-    build: ./backend
-    container_name: backend
-    ports:
-      - "8000:8000"
-    networks:
-      - transcendence
-    restart: unless-stopped
-  
-  frontend:
-    build: ./frontend
-    container_name: frontend
-    networks:
-      - transcendence
-    restart: unless-stopped
-  
+  # backend:
+  #   container_name: backend
+  #   build:
+  #     context: ./backend
+  #   networks:
+  #     - transcendence
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+  #     REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+  #     VAULT_ADDR: http://vault:8200
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     vault:
+  #       condition: service_healthy
+  #   #healthcheck:
+  #   #  test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+  #   #  interval: 10s
+  #   #  timeout: 5s
+  #   #  retries: 5
+  #   #  start_period: 30s
+  #   restart: unless-stopped
+
+  #frontend:
+
   nginx:
     container_name: nginx
-    image: nginx
+    image: owasp/modsecurity-crs:4-nginx-202606261106
     networks:
       - transcendence
     ports:
-      - "443:443"
-      - "80:80"
+      - "443:8443"
+      - "80:8080"
     volumes:
-      #- ./nginx/conf/nginx.conf:/etc/nginx/conf
-      #- ./nginx/certs:/etc/nginx/certs
-      - ./nginx/conf/nginx.conf:/etc/nginx/conf
+      - ./nginx/template/default.conf.template:/etc/nginx/templates/conf.d/default.conf.template
       - ./nginx/certs:/etc/nginx/certs
-    depends_on:
-      - backend
-      - frontend
+    #depends_on:
+    #  - backend
+    #  - frontend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/stub_status"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    environment:
+      BACKEND: ${BACKEND}
+      SSL_CERT_FILE: /etc/nginx/certs/nginx.cert
+      SSL_CERT_KEY_FILE: /etc/nginx/certs/nginx.key
+      SSL_PORT: 8443
+      PORT: 8080
+      SERVER_NAME: Transcendence
+      SSL_PROTOCOLS: TLSv1.2 TLSv1.3
     restart: unless-stopped
 
   nginx_exporter:
@@ -41,9 +66,10 @@ services:
     ports:
       - "9113:9113"
     command:
-    - "-nginx.scrape-uri=http://nginx:80/stub_status"
+      - "-nginx.scrape-uri=http://nginx:8080/stub_status"
     depends_on:
-      - nginx
+      nginx:
+        condition: service_healthy
     restart: unless-stopped
 
   vault:
@@ -55,11 +81,40 @@ services:
       - "8200:8200"
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID}
+      VAULT_DEV_LISTEN_ADDRESS: ${VAULT_DEV_LISTEN_ADDRESS}
+      VAULT_ADDR: ${VAULT_ADDR}
+    volumes:
+      - ./vault/config:/etc/vault/config
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     command: vault server -dev
     cap_add:
-      - IPC_LOCK #evita que secrets sejam escritos no disco (swap), permite ao vault bloquear memória
+      - IPC_LOCK
     restart: unless-stopped
-  
+
+  vault_init:
+    container_name: vault_init
+    image: hashicorp/vault
+    networks:
+      - transcendence
+    environment:
+      VAULT_TOKEN: ${VAULT_DEV_ROOT_TOKEN_ID}
+      VAULT_ADDR: http://vault:8200
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    entrypoint: ["sh", "/etc/vault/config/vault-init.sh"]
+    volumes:
+      - ./vault/config:/etc/vault/config
+    depends_on:
+      vault:
+        condition: service_healthy
+    restart: on-failure
+
   grafana:
     container_name: grafana
     image: grafana/grafana
@@ -69,11 +124,12 @@ services:
       - "3001:3000"
     environment:
       GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER}
-      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD} 
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD}
     volumes:
-      - grafana-db:/var/lib/grafana
+      - grafana-db:/var/lib/grafana/
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_healthy
     restart: unless-stopped
 
   prometheus:
@@ -86,18 +142,30 @@ services:
     volumes:
       - prometheus-data:/var/lib/prometheus/data
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   redis:
     container_name: redis
     image: redis
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     networks:
       - transcendence
     ports:
       - "6379:6379"
     volumes:
-        - redis-data:/data
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   redis_exporter:
@@ -107,46 +175,54 @@ services:
       - transcendence
     environment:
       REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - "9121:9121"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
   postgres:
-      container_name: postgres
-      image: postgres
-      networks:
-        - transcendence
-      ports:
-        - "5432:5432"
-      environment:
-        POSTGRES_USER: ${POSTGRES_USER}
-        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-        POSTGRES_DB: ${POSTGRES_DB}
-      volumes:
-        - postgres-data:/var/lib/postgresql/data
-      restart: unless-stopped
+    container_name: postgres
+    image: postgres:16
+    networks:
+      - transcendence
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
 
   postgres_exporter:
-      container_name: postgres_exporter
-      image: prometheuscommunity/postgres-exporter
-      networks:
-        - transcendence
-      environment:
-        DATA_SOURCE_NAME: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
-      ports:
-        - "9187:9187"
-      depends_on: 
-        - postgres
-      restart: unless-stopped
-    
+    container_name: postgres_exporter
+    image: prometheuscommunity/postgres-exporter
+    networks:
+      - transcendence
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+    ports:
+      - "9187:9187"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   grafana-db:
   prometheus-data:
   redis-data:
   postgres-data:
-
 
 networks:
   transcendence:

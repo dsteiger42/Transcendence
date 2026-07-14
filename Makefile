@@ -1,54 +1,62 @@
-# Variáveis
 NODE_BIN = ./backend/node_modules/.bin
 NPM = npm --prefix backend
 DOCKER_COMPOSE = docker compose
 
-.PHONY: all install build dev clean up down re logs
+COMPOSE = docker compose -f ./docker-compose.yml
+SERVICES = nginx nginx_exporter vault grafana prometheus redis redis_exporter postgres postgres_exporter
 
-# Comando padrão (compila o projeto localmente)
-all: build
+all: clean build up
+	@echo "Transcendence started!"
 
-# Instala as dependências do projeto localmente
 install:
 	@echo "Instalando dependências locais..."
 	$(NPM) install
 
-# Compila o projeto TypeScript localmente
 build: clean
-	@echo "Compilando o projeto..."
+	@echo "Building images..."
 	$(NPM) run build
+	$(COMPOSE) build
 
-# Executa o projeto em modo de desenvolvimento local (sem Docker)
+up:
+	@echo "Upping all the containers..."
+	$(COMPOSE) up -d
+
+down:
+	@echo "Stopping and removing containers..."
+	$(COMPOSE) down
+
 dev:
 	@echo "Iniciando localmente em modo de desenvolvimento..."
 	$(NPM) run start:dev
 
-# Limpa a pasta de distribuição (dist)
+
 clean:
+	@echo "Cleaning Docker..."
 	@echo "Limpando a pasta dist..."
 	@if [ -d "backend/dist" ]; then \
 		rm -rf backend/dist 2>/dev/null || sudo rm -rf backend/dist; \
 	fi
+	$(COMPOSE) down
+	docker system prune -f
 
-# ==========================================
-# COMANDOS DOCKER COMPOSE
-# ==========================================
+fclean:
+	@echo "Full cleaning Docker..."
+	-docker stop $$(docker ps -qa)
+	-docker rm $$(docker ps -qa)
+	-docker rmi -f $$(docker images -qa)
+	-docker volume rm $$(docker volume ls -q)
+	-docker network rm $$(docker network ls -q) 2>/dev/null
+	$(COMPOSE) down -v
 
-# Constrói as imagens e sobe os contentores em background (-d)
-up:
-	@echo "Subindo o ambiente Docker (Backend + Nginx)..."
-	$(DOCKER_COMPOSE) up --build -d
-
-# Derruba os contentores e remove os volumes órfãos
-down:
-	@echo "Parando e removendo contentores..."
-	$(DOCKER_COMPOSE) down
-
-# Reinicia os contentores do Docker
-re:
-	@echo "Reiniciando os serviços..."
-	$(DOCKER_COMPOSE) restart
-
-# Mostra os logs dos contentores em tempo real (Ctrl+C para sair)
 logs:
-	$(DOCKER_COMPOSE) logs -f
+	@echo "Check specific service logs (ex: make logs SERVICE=backend)"
+	$(COMPOSE) logs -f $(SERVICE)
+
+exec:
+	@echo "Entering on the container (ex: make exec SERVICE=backend)"
+	$(COMPOSE) exec $(SERVICE) sh
+
+re: clean build up
+	@echo "Restarting all the containers..."
+
+.PHONY: all build up down clean fclean logs exec re

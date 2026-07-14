@@ -17,8 +17,8 @@ mkcert -install
 mkdir -p nginx/certs
 cd nginx/certs
 mkcert localhost 127.0.0.1 ::1
-
 mv localhost+2.pem nginx.cert
 mv localhost+2-key.pem nginx.key
+chmod 644 nginx.key
 
 echo "[+] Certs generated at nginx/certs/"
