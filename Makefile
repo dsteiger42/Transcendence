@@ -1,11 +1,20 @@
+NODE_BIN = ./backend/node_modules/.bin
+NPM = npm --prefix backend
+DOCKER_COMPOSE = docker compose
+
 COMPOSE = docker compose -f ./docker-compose.yml
 SERVICES = nginx nginx_exporter vault grafana prometheus redis redis_exporter postgres postgres_exporter
 
 all: clean build up
 	@echo "Transcendence started!"
 
-build:
+install:
+	@echo "Instalando dependências locais..."
+	$(NPM) install
+
+build: clean
 	@echo "Building images..."
+	$(NPM) run build
 	$(COMPOSE) build
 
 up:
@@ -16,8 +25,17 @@ down:
 	@echo "Stopping and removing containers..."
 	$(COMPOSE) down
 
+dev:
+	@echo "Iniciando localmente em modo de desenvolvimento..."
+	$(NPM) run start:dev
+
+
 clean:
 	@echo "Cleaning Docker..."
+	@echo "Limpando a pasta dist..."
+	@if [ -d "backend/dist" ]; then \
+		rm -rf backend/dist 2>/dev/null || sudo rm -rf backend/dist; \
+	fi
 	$(COMPOSE) down
 	docker system prune -f
 
