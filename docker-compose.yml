@@ -1,32 +1,49 @@
 services:
   backend:
-     container_name: backend
-     build:
-       context: ./backend
-     networks:
-       - transcendence
-     ports:
-       - "8000:8000"
-     environment:
-       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
-       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-       VAULT_ADDR: http://vault:8200
-     depends_on:
-       postgres:
-         condition: service_healthy
-       #redis:
-       #  condition: service_healthy
-       #vault:
-       #  condition: service_healthy
-     #healthcheck:
-     #  test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-     #  interval: 10s
-     #  timeout: 5s
-     #  retries: 5
-     #  start_period: 30s
-     restart: unless-stopped
+    container_name: backend
+    build:
+      context: ./backend
+    networks:
+      - transcendence
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      VAULT_ADDR: http://vault:8200
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      vault:
+        condition: service_healthy
+    #healthcheck:
+      #test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      #interval: 10s
+      #timeout: 5s
+      #retries: 5
+      #start_period: 30s
+    restart: unless-stopped
 
-  #frontend:
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+    networks:
+      - transcendence
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
 
   nginx:
     container_name: nginx
@@ -40,14 +57,16 @@ services:
       - ./nginx/template/default.conf.template:/etc/nginx/templates/conf.d/default.conf.template
       - ./nginx/certs:/etc/nginx/certs
     depends_on:
-      - backend
-    #  - frontend
-    #healthcheck:
-    #  test: ["CMD", "curl", "-f", "http://localhost:8080/stub_status"]
-    #  interval: 5s
-    #  timeout: 3s
-    #  retries: 5
-    #  start_period: 10s
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/stub_status"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     environment:
       BACKEND: ${BACKEND}
       SSL_CERT_FILE: /etc/nginx/certs/nginx.cert
