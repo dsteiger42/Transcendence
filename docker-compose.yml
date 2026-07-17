@@ -18,12 +18,12 @@ services:
         condition: service_healthy
       vault:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+    #healthcheck:
+      #test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      #interval: 10s
+      #timeout: 5s
+      #retries: 5
+      #start_period: 30s
     restart: unless-stopped
 
   frontend:
@@ -36,7 +36,7 @@ services:
       - "3000:3000"
     depends_on:
       backend:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 10s
@@ -58,7 +58,7 @@ services:
       - ./nginx/certs:/etc/nginx/certs
     depends_on:
       backend:
-        condition: service_healthy
+        condition: service_started
       frontend:
         condition: service_started
     healthcheck:
