@@ -1,6 +1,0 @@
-.env
-nginx/ssl_certificates
-vault/secrets
-nginx/certs/
-node_modules/
-scripts/nginx/
