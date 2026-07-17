@@ -67,9 +67,9 @@ services:
       - "9113:9113"
     command:
       - "-nginx.scrape-uri=http://nginx:8080/stub_status"
-    #depends_on:
-    #  nginx:
-    #    condition: service_healthy
+    depends_on:
+      nginx:
+        condition: service_healthy
     restart: unless-stopped
 
   vault:
@@ -85,12 +85,12 @@ services:
       VAULT_ADDR: ${VAULT_ADDR}
     volumes:
       - ./vault/config:/etc/vault/config
-    #healthcheck:
-    #  test: ["CMD", "vault", "status"]
-    #  interval: 5s
-    #  timeout: 3s
-    #  retries: 5
-    #  start_period: 10s
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     command: vault server -dev
     cap_add:
       - IPC_LOCK
@@ -110,9 +110,9 @@ services:
     entrypoint: ["sh", "/etc/vault/config/vault-init.sh"]
     volumes:
       - ./vault/config:/etc/vault/config
-    #depends_on:
-    #  vault:
-    #    condition: service_healthy
+    depends_on:
+      vault:
+        condition: service_healthy
     restart: on-failure
 
   grafana:
@@ -160,12 +160,12 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
-    #healthcheck:
-    #  test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
-    #  interval: 5s
-    #  timeout: 3s
-    #  retries: 5
-    #  start_period: 10s
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
 
   redis_exporter:
@@ -178,9 +178,9 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - "9121:9121"
-    #depends_on:
-    #  redis:
-    #    condition: service_healthy
+    depends_on:
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
   postgres:
