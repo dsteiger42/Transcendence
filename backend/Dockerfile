@@ -16,6 +16,8 @@ RUN npm install
 # 6. Copiar o resto do código do teu backend para dentro do contentor
 COPY . .
 
+RUN npx prisma generate
+
 # 7. Expor a porta que o teu NestJS vai usar (porta 3000)
 EXPOSE 8000
 
