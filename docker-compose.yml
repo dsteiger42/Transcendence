@@ -18,12 +18,12 @@ services:
        #  condition: service_healthy
        #vault:
        #  condition: service_healthy
-     #healthcheck:
-     #  test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-     #  interval: 10s
-     #  timeout: 5s
-     #  retries: 5
-     #  start_period: 30s
+     healthcheck:
+       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+       interval: 10s
+       timeout: 5s
+       retries: 5
+       start_period: 30s
      restart: unless-stopped
 
   #frontend:
@@ -41,13 +41,13 @@ services:
       - ./nginx/certs:/etc/nginx/certs
     depends_on:
       - backend
-    #  - frontend
-    #healthcheck:
-    #  test: ["CMD", "curl", "-f", "http://localhost:8080/stub_status"]
-    #  interval: 5s
-    #  timeout: 3s
-    #  retries: 5
-    #  start_period: 10s
+      #- frontend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/stub_status"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     environment:
       BACKEND: ${BACKEND}
       SSL_CERT_FILE: /etc/nginx/certs/nginx.cert
