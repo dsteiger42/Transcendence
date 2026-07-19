@@ -4,6 +4,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { ForumModule } from './forum/forum.module';
 import { ModerationModule } from './moderation/moderation.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -12,6 +13,8 @@ import { ModerationModule } from './moderation/moderation.module';
     AuthModule,
     ForumModule,
     ModerationModule,
+	AuthModule,
+	HealthModule,
   ],
   controllers: [],
   providers: [],
