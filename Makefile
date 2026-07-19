@@ -1,17 +1,21 @@
 NODE_BIN = ./backend/node_modules/.bin
+
 NPM = npm --prefix backend
+
 DOCKER_COMPOSE = docker compose
 
 SCRIPT_CERTS = ./scripts/setup-certs.sh
 COMPOSE = docker compose -f ./docker-compose.yml
+
 SERVICES = nginx nginx_exporter vault grafana prometheus redis redis_exporter postgres postgres_exporter
 
 all: install build up
 	@echo "Transcendence started!"
 
-install:
-	@echo "Instalando dependências locais..."
-	$(NPM) install
+deps:
+	@echo "Installing backend dependencies..."
+	cd backend && npm install
+	cd backend && npx prisma generate
 
 build: clean
 	@echo "Building images..."
@@ -29,7 +33,6 @@ down:
 dev:
 	@echo "Iniciando localmente em modo de desenvolvimento..."
 	$(NPM) run start:dev
-
 
 clean:
 	@echo "Cleaning Docker..."
@@ -61,4 +64,4 @@ exec:
 re: fclean install build up
 	@echo "Restarting all the containers..."
 
-.PHONY: all build up down clean fclean logs exec re
+.PHONY: all build deps up down clean fclean logs exec re
