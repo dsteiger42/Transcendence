@@ -4,11 +4,12 @@ NPM = npm --prefix backend
 
 DOCKER_COMPOSE = docker compose
 
+SCRIPT_CERTS = ./scripts/setup-certs.sh
 COMPOSE = docker compose -f ./docker-compose.yml
 
 SERVICES = nginx nginx_exporter vault grafana prometheus redis redis_exporter postgres postgres_exporter
 
-all: clean build up
+all: install build up
 	@echo "Transcendence started!"
 
 deps:
@@ -18,7 +19,7 @@ deps:
 
 build: clean
 	@echo "Building images..."
-	$(NPM) run build
+	$(SCRIPT_CERTS)
 	$(COMPOSE) build
 
 up:
@@ -42,13 +43,14 @@ clean:
 	$(COMPOSE) down
 	docker system prune -f
 
-fclean:
+fclean: clean
 	@echo "Full cleaning Docker..."
 	-docker stop $$(docker ps -qa)
 	-docker rm $$(docker ps -qa)
 	-docker rmi -f $$(docker images -qa)
 	-docker volume rm $$(docker volume ls -q)
 	-docker network rm $$(docker network ls -q) 2>/dev/null
+	sudo rm -rf nginx/certs/
 	$(COMPOSE) down -v
 
 logs:
@@ -59,7 +61,7 @@ exec:
 	@echo "Entering on the container (ex: make exec SERVICE=backend)"
 	$(COMPOSE) exec $(SERVICE) sh
 
-re: clean build up
+re: fclean install build up
 	@echo "Restarting all the containers..."
 
 .PHONY: all build deps up down clean fclean logs exec re
