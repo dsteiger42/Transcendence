@@ -7,6 +7,8 @@ RUN npm install -g @nestjs/cli
 # 3. Definir o diretório de trabalho dentro do contentor
 WORKDIR /usr/src/app
 
+RUN apk add --no-cache curl
+
 # 4. Copiar os ficheiros de dependências primeiro (aproveita a cache de camadas do Docker)
 COPY package*.json ./
 
