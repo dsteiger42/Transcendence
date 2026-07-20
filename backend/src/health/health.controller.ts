@@ -14,17 +14,23 @@ import {
 	@Get()
 	async check() {
 	  try {
-		await this.healthService.checkDatabase();
-  
-		return {
-		  status: 'ok',
-		  database: 'up',
+	    await this.healthService.checkDatabase();
+	    await this.healthService.checkRedis();
+		await this.healthService.checkVault();
+
+	    return {
+	      status: 'ok',
+	      database: 'up',
+	      redis: 'up',
+		  vault: 'up',
 		};
 	  } catch {
-		throw new ServiceUnavailableException({
-		  status: 'error',
-		  database: 'down',
-		});
+	    throw new ServiceUnavailableException({
+	      status: 'error',
+	      database: 'down',
+	      redis: 'down',
+	    });
 	  }
 	}
+	
   }
