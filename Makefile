@@ -9,7 +9,7 @@ COMPOSE = docker compose -f ./docker-compose.yml
 
 SERVICES = nginx nginx_exporter vault grafana prometheus redis redis_exporter postgres postgres_exporter
 
-all: install build up
+all: deps build up
 	@echo "Transcendence started!"
 
 deps:
@@ -61,7 +61,7 @@ exec:
 	@echo "Entering on the container (ex: make exec SERVICE=backend)"
 	$(COMPOSE) exec $(SERVICE) sh
 
-re: fclean install build up
+re: fclean deps build up
 	@echo "Restarting all the containers..."
 
 .PHONY: all build deps up down clean fclean logs exec re
