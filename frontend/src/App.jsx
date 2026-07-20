@@ -7,6 +7,7 @@ import BetSection from './components/BetSection';
 import ActiveBets from './components/ActiveBets';
 import HistoryList from './components/HistoryList';
 import Toast from './components/Toast';
+import RegisterModal from './components/RegisterModal';
 import { fakePrices, PAYOUT, MINUTE, WINDOW } from './data/constants';
 import { randomMove } from './utils/format';
 
@@ -25,6 +26,8 @@ export default function App() {
   const [betAmount, setBetAmount] = useState(100);
   const [betStatus, setBetStatus] = useState({ text: '', type: '' });
   const [toast, setToast] = useState({ msg: '', type: '', show: false });
+  const [showRegister, setShowRegister] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   // The game loop runs on a 1s interval that's only created once (empty deps
   // below). To read the LATEST bets/prices/coin from inside it without
@@ -139,7 +142,12 @@ export default function App() {
 
   return (
     <>
-      <Navbar balance={balance} />
+      <Navbar
+        balance={balance}
+        onRegisterClick={() => setShowRegister(true)}
+        currentUser={currentUser}
+        onLogout={() => setCurrentUser(null)}
+      />
 
       <main className="page-content">
         <div className="trading-layout">
@@ -169,6 +177,16 @@ export default function App() {
       </main>
 
       <Toast {...toast} />
+
+      {showRegister && (
+        <RegisterModal
+          onClose={() => setShowRegister(false)}
+          onSuccess={(user) => {
+            setCurrentUser(user);
+            showToast(`Welcome, ${user.username}!`, 'win');
+          }}
+        />
+      )}
     </>
   );
 }

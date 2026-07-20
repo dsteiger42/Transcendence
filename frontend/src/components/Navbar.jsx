@@ -1,4 +1,6 @@
-export default function Navbar({ balance }) {
+import ProfileDropdown from './ProfileDropdown';
+
+export default function Navbar({ balance, onRegisterClick, currentUser, onLogout }) {
   return (
     <nav className="navbar">
       <div className="logo">
@@ -32,8 +34,14 @@ export default function Navbar({ balance }) {
 
         <div className="nav-divider" />
 
-        <button className="nav-btn nav-btn--ghost">Login</button>
-        <button className="nav-btn nav-btn--solid">Register</button>
+        {currentUser ? (
+          <ProfileDropdown user={currentUser} onLogout={onLogout} />
+        ) : (
+          <>
+            <button className="nav-btn nav-btn--ghost">Login</button>
+            <button className="nav-btn nav-btn--solid" onClick={onRegisterClick}>Register</button>
+          </>
+        )}
       </div>
     </nav>
   );

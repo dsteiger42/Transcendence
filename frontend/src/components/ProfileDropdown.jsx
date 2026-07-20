@@ -1,0 +1,44 @@
+import { useState, useRef, useEffect } from 'react';
+
+export default function ProfileDropdown({ user, onLogout }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const initial = user.username.charAt(0).toUpperCase();
+
+  return (
+    <div className="profile-dropdown" ref={ref}>
+      <button className="profile-avatar-btn" onClick={() => setOpen((o) => !o)}>
+        {initial}
+      </button>
+
+      {open && (
+        <div className="profile-menu">
+          <div className="profile-menu-username">{user.username}</div>
+          <button className="profile-menu-item" onClick={() => setOpen(false)}>
+            Settings
+          </button>
+          <button
+            className="profile-menu-item profile-menu-item--danger"
+            onClick={() => {
+              setOpen(false);
+              onLogout();
+            }}
+          >
+            Logout
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
