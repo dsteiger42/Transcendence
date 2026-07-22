@@ -660,6 +660,10 @@ body {
   gap: 12px;
 }
 
+.modal h2 {
+  color: #f5f5f5;
+}
+
 .modal input {
   padding: 8px;
   border-radius: 4px;

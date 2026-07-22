@@ -8,6 +8,7 @@ import ActiveBets from './components/ActiveBets';
 import HistoryList from './components/HistoryList';
 import Toast from './components/Toast';
 import RegisterModal from './components/RegisterModal';
+import LoginModal from './components/LoginModal';
 import { fakePrices, PAYOUT, MINUTE, WINDOW } from './data/constants';
 import { randomMove } from './utils/format';
 
@@ -27,7 +28,12 @@ export default function App() {
   const [betStatus, setBetStatus] = useState({ text: '', type: '' });
   const [toast, setToast] = useState({ msg: '', type: '', show: false });
   const [showRegister, setShowRegister] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [showLogin, setShowLogin] = useState(false);
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem('currentUser');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [token, setToken] = useState(() => localStorage.getItem('token'));
 
   // The game loop runs on a 1s interval that's only created once (empty deps
   // below). To read the LATEST bets/prices/coin from inside it without
@@ -36,6 +42,17 @@ export default function App() {
   betsRef.current = bets;
   const pricesRef = useRef(currentPrices);
   pricesRef.current = currentPrices;
+
+  // ── Persist auth state to localStorage so a page refresh doesn't log out ──
+  useEffect(() => {
+    if (token) localStorage.setItem('token', token);
+    else localStorage.removeItem('token');
+  }, [token]);
+
+  useEffect(() => {
+    if (currentUser) localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    else localStorage.removeItem('currentUser');
+  }, [currentUser]);
 
   // ── "Methods" (same responsibilities as the functions in script.js) ──
 
@@ -98,6 +115,13 @@ export default function App() {
     });
   }
 
+  async function handleLoginSuccess(accessToken) {
+    setToken(accessToken);
+    // decode just enough to greet them — or fetch /users with the token later
+    showToast('Logged in!', 'win');
+    setCurrentUser({ username: 'placeholder' }); // see note below
+  }
+
   // ── Main game loop: replaces the setInterval at the bottom of script.js ──
   useEffect(() => {
     const interval = setInterval(() => {
@@ -145,8 +169,9 @@ export default function App() {
       <Navbar
         balance={balance}
         onRegisterClick={() => setShowRegister(true)}
+        onLoginClick={() => setShowLogin(true)}
         currentUser={currentUser}
-        onLogout={() => setCurrentUser(null)}
+        onLogout={() => { setCurrentUser(null); setToken(null); }}
       />
 
       <main className="page-content">
@@ -185,6 +210,13 @@ export default function App() {
             setCurrentUser(user);
             showToast(`Welcome, ${user.username}!`, 'win');
           }}
+        />
+      )}
+
+      {showLogin && (
+        <LoginModal
+          onClose={() => setShowLogin(false)}
+          onSuccess={handleLoginSuccess}
         />
       )}
     </>

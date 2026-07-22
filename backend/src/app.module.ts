@@ -10,7 +10,6 @@ import { HealthModule } from './health/health.module';
   imports: [
     PrismaModule,
     UsersModule,
-    AuthModule,
     ForumModule,
     ModerationModule,
 	AuthModule,
