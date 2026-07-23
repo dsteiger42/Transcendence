@@ -1,4 +1,8 @@
 
+    #limit_req_zone $binary_remote_addr zone=api:10m rate=30r/s;
+    limit_req_zone $binary_remote_addr zone=login:10m rate=10r/m;
+
+    
     server {
         listen ${PORT};
         listen [::]:${PORT};
@@ -38,10 +42,18 @@
             proxy_set_header X-Real-IP $remote_addr;
         }
 
-        location /api/ {
+        #location /api/ {
+        #    proxy_pass http://backend:8000;
+        #    proxy_set_header Host $host;
+        #    proxy_set_header X-Real-IP $remote_addr;
+        #}
+
+        location /auth/login {
             proxy_pass http://backend:8000;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
+            limit_req zone=login burst=5 nodelay;
+
         }
 
         location /ws {
