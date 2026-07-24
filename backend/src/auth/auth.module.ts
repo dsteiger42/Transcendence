@@ -6,6 +6,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { PrismaModule } from '../prisma/prisma.module';
+import { RateLimiterService } from '../rate-limiter/rate-limiter.service';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { PrismaModule } from '../prisma/prisma.module';
   providers: [
     AuthService,
     JwtStrategy,
+    RateLimiterService,
   ],
 })
 export class AuthModule {}
