@@ -24,6 +24,9 @@ export class ForumService {
   ) {}
 
   findAllPosts(query: SearchPostsDto) {
+    const sortBy = query.sortBy ?? 'createdAt';
+    const order = query.order ?? 'desc';
+
     return this.prisma.post.findMany({
       where: {
         status: 'visible',
@@ -62,7 +65,7 @@ export class ForumService {
       },
 
       orderBy: {
-        createdAt: 'desc',
+        [sortBy]: order,
       },
     });
   }
