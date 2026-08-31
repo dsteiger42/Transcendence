@@ -14,6 +14,7 @@ import { CreateReportDto } from './dto/create-report.dto';
 import { ResolveReportDto } from './dto/resolve-report.dto';
 import { ModerationService } from '../moderation/moderation.service';
 import { ReviewContentDto } from './dto/review-content.dto';
+import { SearchPostsDto } from './dto/search-posts.dto';
 
 @Injectable()
 export class ForumService {
@@ -22,10 +23,26 @@ export class ForumService {
     private readonly moderationService: ModerationService,
   ) {}
 
-  findAllPosts() {
+  findAllPosts(query: SearchPostsDto) {
     return this.prisma.post.findMany({
       where: {
         status: 'visible',
+        ...(query.search && {
+          OR: [
+            {
+              title: {
+                contains: query.search,
+                mode: 'insensitive',
+              },
+            },
+            {
+              content: {
+                contains: query.search,
+                mode: 'insensitive',
+              },
+            },
+          ],
+        }),
       },
       orderBy: {
         createdAt: 'desc',

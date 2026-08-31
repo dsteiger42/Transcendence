@@ -11,6 +11,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth-guard';
 import { Role } from '@prisma/client';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
+import { SearchPostsDto } from './dto/search-posts.dto';
 
 @Controller('forum')
 export class ForumController {
@@ -26,8 +27,8 @@ export class ForumController {
 
   @UseGuards(JwtAuthGuard)
   @Get('posts')
-  getPosts() {
-    return this.forumService.findAllPosts();
+  getPosts(@Query() query: SearchPostsDto) {
+    return this.forumService.findAllPosts(query);
   }
 
   @UseGuards(JwtAuthGuard)
