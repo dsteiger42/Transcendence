@@ -25,6 +25,15 @@ export class ForumService {
   ) {}
 
   async findAllPosts(query: SearchPostsDto) {
+    if (
+      query.dateFrom &&
+      query.dateTo &&
+      new Date(query.dateFrom) > new Date(query.dateTo)
+    ) {
+      throw new BadRequestException(
+        'dateFrom must be earlier than or equal to dateTo',
+      );
+    }
     const sortBy = query.sortBy ?? 'createdAt';
     const order = query.order ?? 'desc';
     const page = query.page ?? 1;
