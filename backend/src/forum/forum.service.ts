@@ -15,6 +15,7 @@ import { ResolveReportDto } from './dto/resolve-report.dto';
 import { ModerationService } from '../moderation/moderation.service';
 import { ReviewContentDto } from './dto/review-content.dto';
 import { SearchPostsDto } from './dto/search-posts.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ForumService {
@@ -23,51 +24,73 @@ export class ForumService {
     private readonly moderationService: ModerationService,
   ) {}
 
-  findAllPosts(query: SearchPostsDto) {
+  async findAllPosts(query: SearchPostsDto) {
     const sortBy = query.sortBy ?? 'createdAt';
     const order = query.order ?? 'desc';
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
 
-    return this.prisma.post.findMany({
-      where: {
-        status: 'visible',
+    const where: Prisma.PostWhereInput = {
+      status: 'visible',
 
-        ...(query.search && {
-          OR: [
-            {
-              title: {
-                contains: query.search,
-                mode: 'insensitive',
-              },
+      ...(query.search && {
+        OR: [
+          {
+            title: {
+              contains: query.search,
+              mode: 'insensitive',
             },
-            {
-              content: {
-                contains: query.search,
-                mode: 'insensitive',
-              },
-            },
-          ],
-        }),
-
-        ...(query.authorId && {
-          authorId: query.authorId,
-        }),
-
-        ...((query.dateFrom || query.dateTo) && {
-          createdAt: {
-            ...(query.dateFrom && {
-              gte: new Date(query.dateFrom),
-            }),
-            ...(query.dateTo && {
-              lte: new Date(query.dateTo),
-            }),
           },
-        }),
-      },
+          {
+            content: {
+              contains: query.search,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      }),
 
-      orderBy: {
-        [sortBy]: order,
+      ...(query.authorId && {
+        authorId: query.authorId,
+      }),
+
+      ...((query.dateFrom || query.dateTo) && {
+        createdAt: {
+          ...(query.dateFrom && {
+            gte: new Date(query.dateFrom),
+          }),
+          ...(query.dateTo && {
+            lte: new Date(query.dateTo),
+          }),
+        },
+      }),
+    };
+
+    const [posts, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        orderBy: {
+          [sortBy]: order,
+        },
+        skip,
+        take: limit,
+      }),
+
+      this.prisma.post.count({
+        where,
+      }),
+    ]);
+
+    return {
+      data: posts,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-    });
+    };
   }
 
   findPostById(id: number) {
