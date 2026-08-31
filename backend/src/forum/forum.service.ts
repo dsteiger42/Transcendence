@@ -27,6 +27,7 @@ export class ForumService {
     return this.prisma.post.findMany({
       where: {
         status: 'visible',
+
         ...(query.search && {
           OR: [
             {
@@ -43,7 +44,23 @@ export class ForumService {
             },
           ],
         }),
+
+        ...(query.authorId && {
+          authorId: query.authorId,
+        }),
+
+        ...((query.dateFrom || query.dateTo) && {
+          createdAt: {
+            ...(query.dateFrom && {
+              gte: new Date(query.dateFrom),
+            }),
+            ...(query.dateTo && {
+              lte: new Date(query.dateTo),
+            }),
+          },
+        }),
       },
+
       orderBy: {
         createdAt: 'desc',
       },
