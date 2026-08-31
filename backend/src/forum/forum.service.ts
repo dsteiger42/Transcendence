@@ -14,6 +14,8 @@ import { CreateReportDto } from './dto/create-report.dto';
 import { ResolveReportDto } from './dto/resolve-report.dto';
 import { ModerationService } from '../moderation/moderation.service';
 import { ReviewContentDto } from './dto/review-content.dto';
+import { SearchPostsDto } from './dto/search-posts.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ForumService {
@@ -22,15 +24,82 @@ export class ForumService {
     private readonly moderationService: ModerationService,
   ) {}
 
-  findAllPosts() {
-    return this.prisma.post.findMany({
-      where: {
-        status: 'visible',
+  async findAllPosts(query: SearchPostsDto) {
+    if (
+      query.dateFrom &&
+      query.dateTo &&
+      new Date(query.dateFrom) > new Date(query.dateTo)
+    ) {
+      throw new BadRequestException(
+        'dateFrom must be earlier than or equal to dateTo',
+      );
+    }
+    const sortBy = query.sortBy ?? 'createdAt';
+    const order = query.order ?? 'desc';
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.PostWhereInput = {
+      status: 'visible',
+
+      ...(query.search && {
+        OR: [
+          {
+            title: {
+              contains: query.search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            content: {
+              contains: query.search,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      }),
+
+      ...(query.authorId && {
+        authorId: query.authorId,
+      }),
+
+      ...((query.dateFrom || query.dateTo) && {
+        createdAt: {
+          ...(query.dateFrom && {
+            gte: new Date(query.dateFrom),
+          }),
+          ...(query.dateTo && {
+            lte: new Date(query.dateTo),
+          }),
+        },
+      }),
+    };
+
+    const [posts, total] = await Promise.all([
+      this.prisma.post.findMany({
+        where,
+        orderBy: {
+          [sortBy]: order,
+        },
+        skip,
+        take: limit,
+      }),
+
+      this.prisma.post.count({
+        where,
+      }),
+    ]);
+
+    return {
+      data: posts,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    };
   }
 
   findPostById(id: number) {
