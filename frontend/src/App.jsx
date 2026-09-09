@@ -10,6 +10,7 @@ import PriceChart from './components/PriceChart';
 import Toast from './components/Toast';
 import RegisterModal from './components/RegisterModal';
 import LoginModal from './components/LoginModal';
+import SettingsPage from './components/SettingsPage';
 import { fakePrices, PAYOUT, MINUTE, WINDOW } from './data/constants';
 import { socket } from './api/socket';
 
@@ -46,6 +47,7 @@ export default function App() {
   const [toast, setToast] = useState({ msg: '', type: '', show: false });
   const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('currentUser');
     return saved ? JSON.parse(saved) : null;
@@ -201,6 +203,7 @@ export default function App() {
         balance={balance}
         onRegisterClick={() => setShowRegister(true)}
         onLoginClick={() => setShowLogin(true)}
+        onSettingsClick={() => setShowSettings(true)}
         currentUser={currentUser}
         onLogout={() => { setCurrentUser(null); setToken(null); }}
       />
@@ -269,6 +272,17 @@ export default function App() {
         <LoginModal
           onClose={() => setShowLogin(false)}
           onSuccess={handleLoginSuccess}
+        />
+      )}
+
+      {showSettings && (
+        <SettingsPage
+          user={currentUser}
+          onClose={() => setShowSettings(false)}
+          onUpdate={(updatedUser) => {
+            setCurrentUser((u) => ({ ...u, ...updatedUser }));
+            showToast('Profile updated', 'win');
+          }}
         />
       )}
     </>
