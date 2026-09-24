@@ -7,10 +7,10 @@ export class RuleBasedModerationEngine
   implements ModerationEngine
 {
   analyzeText(text: string): ModerationResult {
-    const normalizedText = text.toLowerCase();
 
-    const reasons: string[] = [];
-    let score = 0;
+    const normalizedText = text.toLowerCase();
+    const reasons: string[] = [];       // const prevents reassignment, but the array itself remains mutable
+    let score = 0;                      // let allows the variable to be reassigned
 
     const scamExpressions = [
       'guaranteed profit',
@@ -39,8 +39,8 @@ export class RuleBasedModerationEngine
     ];
 
     if (
-      scamExpressions.some((expression) =>
-        normalizedText.includes(expression),
+      scamExpressions.some((expression) =>      // Checks if any expression is included in the normalized text
+        normalizedText.includes(expression),    // .some() is an array method that takes a function as an argument
       )
     ) {
       reasons.push('Possible financial scam');
@@ -83,7 +83,7 @@ export class RuleBasedModerationEngine
       score += 0.15;
     }
 
-    score = Math.min(score, 1);
+    score = Math.min(score, 1);               // Limits the score to a maximum of 1
 
     if (score >= 0.7) {
       return {
@@ -108,20 +108,43 @@ export class RuleBasedModerationEngine
     };
   }
 
-  private hasExcessiveUppercase(text: string): boolean {
-    const letters = text.match(/\p{L}/gu);
+  /*
 
-    if (!letters || letters.length < 10) {
+  Regex syntax used below:
+
+    /.../   → regex delimiters (start/end)
+    \p{...} → matches characters by Unicode properties
+    \p{L}   → matches any character in the Unicode "Letter" category
+    \p{Lu}  → matches any character in the Unicode "Uppercase Letter" category
+    g       → global flag: finds all matches, not just the first
+    u       → Unicode flag: interprets the regex in Unicode mode
+
+  */
+  private hasExcessiveUppercase(text: string): boolean {
+
+    const letters =
+      text.match(/\p{L}/gu)?.length ?? 0;                   // Matches Unicode letters and stores their count (0 if none)
+                                                            // ?. handles a possible null from match() (returning undefined); ?? 0 uses 0 if no match is found
+    if (letters < 10)                                       // Ignores short texts or texts without letters (e.g. "YES!", "OK")
       return false;
-    }
 
     const uppercaseLetters =
-      text.match(/\p{Lu}/gu)?.length ?? 0;
+      text.match(/\p{Lu}/gu)?.length ?? 0;                  // Matches uppercase Unicode letters and stores their count (0 if none)
 
-    return uppercaseLetters / letters.length > 0.7;
+    return uppercaseLetters / letters > 0.7;                // Returns true if more than 70% of the letters are uppercase
   }
 
+  /*
+    Regex syntax used below:
+
+      (.)     → captures any character (as group 1, since it is the first and only capture group)
+      \1      → backreference to group 1 (matches the same captured character)
+      {5,}    → matches the preceding pattern 5 or more times (the comma means "or more")
+      i       → case-insensitive flag
+      .test() → returns true if the regex finds a match
+
+  */
   private hasExcessiveRepetition(text: string): boolean {
-    return /(.)\1{5,}/i.test(text);
+    return /(.)\1{5,}/i.test(text);                       // Returns true if the same character is repeated at least 6 times consecutively
   }
 }

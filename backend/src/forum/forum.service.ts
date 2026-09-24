@@ -110,7 +110,7 @@ export class ForumService {
 
   createPost(createPostDto: CreatePostDto, userId: number) {
     const textToAnalyze =
-      `${createPostDto.title}\n${createPostDto.content}`;
+      `${createPostDto.title}\n${createPostDto.content}`;     // Combines title and content into a single string; ${} inserts their values into it
 
     const moderation =
       this.moderationService.analyzeText(textToAnalyze);
