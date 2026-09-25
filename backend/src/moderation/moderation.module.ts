@@ -1,8 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ModerationController } from './moderation.controller';
 import { ModerationService } from './moderation.service';
-import { RuleBasedModerationEngine } from './engines/rule-based-moderation.engine';
-import { MODERATION_ENGINE } from './engines/moderation-engine.token';
 import { AuthModule } from '../auth/auth.module';
 import { PrismaModule } from '../prisma/prisma.module';
 
@@ -11,13 +9,7 @@ import { PrismaModule } from '../prisma/prisma.module';
     AuthModule,
     PrismaModule,
   ],
-  providers: [
-    ModerationService,
-    {
-      provide: MODERATION_ENGINE,
-      useClass: RuleBasedModerationEngine,
-    },
-  ],
+  providers: [ModerationService],
   controllers: [ModerationController],
   exports: [ModerationService],
 })
