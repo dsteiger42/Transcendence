@@ -113,11 +113,13 @@ export class ForumService {
   }
 
   async createPost(createPostDto: CreatePostDto, userId: number) {
+
     const allowed = await this.rateLimiter.checkLimit(
-      `forum_post:${userId}`,
-      5,
-      600,
+      `forum_post:${userId}`,   // Key used to identify the rate limit (per user)
+      5,                        // Maximum number of allowed requests
+      600,                      // Time window in seconds (10 minutes)
     );
+
     if (!allowed) {
       throw new HttpException(
         'You are posting too frequently. Please wait before creating another post.',
@@ -249,11 +251,13 @@ export class ForumService {
     createCommentDto: CreateCommentDto,
     userId: number,
   ) {
+
     const allowed = await this.rateLimiter.checkLimit(
-      `forum_comment:${userId}`,
-      20,
-      600,
+      `forum_comment:${userId}`,  // Key used to identify the rate limit (per user)
+      20,                         // Maximum number of allowed requests
+      600,                        // Time window in seconds (10 minutes)
     );
+
     if (!allowed) {
       throw new HttpException(
         'You are commenting too frequently. Please wait before commenting again.',
@@ -400,12 +404,14 @@ export class ForumService {
     });
   }
 
-  async createReport(createReportDto: CreateReportDto, userId: number) {
+  async createReport(createReportDto: CreateReportDto, userId: number) {      // user action
+
     const allowed = await this.rateLimiter.checkLimit(
-      `forum_report:${userId}`,
-      10,
-      3600,
+      `forum_report:${userId}`,   // Key used to identify the rate limit (per user)
+      10,                         // Maximum number of allowed requests
+      3600,                       // Time window in seconds (1 hour)
     );
+
     if (!allowed) {
       throw new HttpException(
         'You are submitting too many reports. Please try again later.',
@@ -449,7 +455,7 @@ export class ForumService {
       }
     }
 
-    const existingReport = await this.prisma.report.findFirst({
+    const existingReport = await this.prisma.report.findFirst({   // Checks for an existing duplicate pending report
       where: {
         reporterId: userId,
         targetType: createReportDto.targetType,
@@ -474,20 +480,16 @@ export class ForumService {
     });
   }
 
-  findAllReports(status?: string) {
+  findAllReports(status?: string) {             // manual moderation action
     return this.prisma.report.findMany({
-      where: status
-        ? {
-            status,
-          }
-        : undefined,
+      where: status ? { status } : undefined,
       orderBy: {
         createdAt: 'desc',
       },
     });
   }
 
-  async resolveReport(
+  async resolveReport(                          // manual moderation action
     reportId: number,
     resolveReportDto: ResolveReportDto,
     moderatorId: number,
@@ -519,7 +521,7 @@ export class ForumService {
         );
       }
 
-      if (resolveReportDto.action === 'remove') {
+      if (resolveReportDto.action === 'remove') {     // Soft moderation instead of a hard delete - the record stays in the DB
         await this.prisma.post.update({
           where: { id: report.targetId },
           data: { status: 'removed' },
@@ -579,8 +581,10 @@ export class ForumService {
     });
   }
 
-  findPendingContent() {
-    return Promise.all([
+  async findPendingContent() {
+    
+    // Promise.all() runs both independent queries concurrently and waits for both to resolve
+    const [posts, comments] = await Promise.all([   // Array destructuring: creates two variables from the two results
       this.prisma.post.findMany({
         where: {
           status: 'pending',
@@ -598,12 +602,14 @@ export class ForumService {
           createdAt: 'desc',
         },
       }),
-    ]).then(([posts, comments]) => ({
+    ]);
+
+    return {      // Returns both arrays grouped in a JavaScript object
       posts,
       comments,
-    }));
+    };
   }
-
+  
   async reviewPendingPost(
     postId: number,
     reviewContentDto: ReviewContentDto,
