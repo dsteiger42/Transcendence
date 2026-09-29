@@ -1,8 +1,17 @@
 import { Module } from '@nestjs/common';
-import { ModerationService } from './moderation.service';
+import { PrismaModule } from '../prisma/prisma.module';
+import { AutomaticModerationService } from './automatic-moderation.service';
+import { ManualModerationService } from './manual-moderation.service';
 
 @Module({
-  providers: [ModerationService],
-  exports: [ModerationService],
+  imports: [PrismaModule],
+  providers: [
+    AutomaticModerationService,
+    ManualModerationService,
+  ],
+  exports: [
+    AutomaticModerationService,
+    ManualModerationService,
+  ],
 })
 export class ModerationModule {}

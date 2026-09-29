@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { ModerationResult } from './moderation.types';
 
 @Injectable()
-export class ModerationService {
+export class AutomaticModerationService {
   analyzeText(text: string): ModerationResult {
 
     const normalizedText = text.toLowerCase();
