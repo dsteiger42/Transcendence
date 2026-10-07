@@ -2,6 +2,26 @@
 
 const API_URL = '';
 
+// The token is stored in localStorage by App.jsx, so the API helpers can read it
+// without every caller having to pass it down.
+function authHeaders(token = localStorage.getItem('token')) {
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
+}
+
+// NestJS validation errors can come back as an array of messages.
+async function buildError(response, fallback) {
+  try {
+    const error = await response.json();
+    const message = Array.isArray(error.message) ? error.message.join(', ') : error.message;
+    return new Error(message || fallback);
+  } catch {
+    return new Error(fallback);
+  }
+}
+
 export async function registerUser({ username, email, password, wallet }) {
   const response = await fetch(`${API_URL}/users`, {
     method: 'POST',
@@ -17,6 +37,20 @@ export async function registerUser({ username, email, password, wallet }) {
   return response.json();
 }
 
+// GET /users/me -> the logged-in user (username, avatar, role, ...)
+export async function getMe(token) {
+  const response = await fetch(`${API_URL}/users/me`, {
+    headers: authHeaders(token),
+  });
+
+  if (!response.ok) {
+    throw await buildError(response, 'Could not load profile');
+  }
+
+  return response.json();
+}
+
+// PATCH /users/me -> updates username and/or avatar, returns the updated user
 export async function updateUser({ username, avatarFile }) {
   let avatar;
   if (avatarFile) {
@@ -28,29 +62,31 @@ export async function updateUser({ username, avatarFile }) {
     });
   }
 
-  console.log('[stub] updateUser payload:', { username, avatar });
-  await new Promise((r) => setTimeout(r, 400));
-  return { username, ...(avatar && { avatar }) };
+  const response = await fetch(`${API_URL}/users/me`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ username, ...(avatar && { avatar }) }),
+  });
+
+  if (!response.ok) {
+    throw await buildError(response, 'Profile update failed');
+  }
+
+  return response.json();
 }
 
-// STUB — swap the body for a real fetch() once your teammate exposes
-// something like PATCH /users/me/password for password changes.
+// PATCH /users/password -> only currentPassword and newPassword are sent
+// (confirmPassword is checked in the form and not part of the backend DTO)
 export async function changePassword({ currentPassword, newPassword }) {
-  console.log('[stub] changePassword payload:', { currentPassword, newPassword });
-  await new Promise((r) => setTimeout(r, 400));
-  return { ok: true };
+  const response = await fetch(`${API_URL}/users/password`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
 
-  // Once the real endpoint exists:
-  // const response = await fetch(`${API_URL}/users/me/password`, {
-  //   method: 'PATCH',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ currentPassword, newPassword }),
-  // });
-  //
-  // if (!response.ok) {
-  //   const error = await response.json();
-  //   throw new Error(error.message || 'Password change failed');
-  // }
-  //
-  // return response.json();
+  if (!response.ok) {
+    throw await buildError(response, 'Password change failed');
+  }
+
+  return response.json();
 }
