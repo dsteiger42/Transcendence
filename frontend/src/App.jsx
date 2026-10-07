@@ -14,6 +14,7 @@ import SettingsPage from './components/SettingsPage';
 import ForumPage from './components/Forum/ForumPage';
 import { fakePrices, PAYOUT, MINUTE, WINDOW } from './data/constants';
 import { socket } from './api/socket';
+import { getMe } from './api/users';
 
 const HISTORY_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -74,6 +75,20 @@ export default function App() {
     if (currentUser) localStorage.setItem('currentUser', JSON.stringify(currentUser));
     else localStorage.removeItem('currentUser');
   }, [currentUser]);
+
+  // ── On app load, refresh the logged-in user from the backend ──
+  // localStorage may hold an outdated copy; the database is the source of truth.
+  useEffect(() => {
+    if (!token) return;
+    getMe(token)
+      .then(setCurrentUser)
+      .catch(() => {
+        // token expired or invalid -> log out
+        setToken(null);
+        setCurrentUser(null);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Listen for real-time crypto prices from the backend's Socket.io gateway ──
   useEffect(() => {
@@ -157,9 +172,14 @@ export default function App() {
 
   async function handleLoginSuccess(accessToken) {
     setToken(accessToken);
-    // decode just enough to greet them — or fetch /users with the token later
-    showToast('Logged in!', 'win');
-    setCurrentUser({ username: 'placeholder' }); // see note below
+    try {
+      // Load the real profile (username, avatar, ...) from the backend
+      const user = await getMe(accessToken);
+      setCurrentUser(user);
+      showToast(`Welcome back, ${user.username}!`, 'win');
+    } catch {
+      showToast('Logged in, but could not load your profile', 'loss');
+    }
   }
 
   // ── Round timer: advances the clock and resolves bets every minute ──
