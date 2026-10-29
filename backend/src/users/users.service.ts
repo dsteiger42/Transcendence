@@ -106,6 +106,7 @@ export class UsersService {
       },
     });
   }
+
   async updateMe( userId: number,	updateMeDto: UpdateMeDto,) 
   {
 	const user = await this.prisma.user.findUnique({
