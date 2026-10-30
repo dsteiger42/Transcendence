@@ -28,7 +28,7 @@ X-API-Key: <api-key>
 
 The guard reads the expected key from `ADMIN_API_KEY`.
 
-Instead of directly comparing the two strings, both keys are hashed with SHA-256 and compared using Node.js `timingSafeEqual()`.
+The guard compares the provided API key directly with the configured `ADMIN_API_KEY` value.
 
 Missing or invalid API keys return HTTP `401 Unauthorized`.
 
@@ -116,8 +116,8 @@ This protects the backend from excessive requests coming from a single client IP
 Current configuration:
 
 ```text
-Key:    admin_api_requests
-Limit:  100 requests
+Key:    admin_api_requests:<client-ip>
+Limit:  100 requests per IP
 Window: 60 seconds
 Status: HTTP 429 when exceeded
 ```
@@ -126,7 +126,7 @@ The guard calls:
 
 ```typescript
 this.rateLimiterService.checkLimit(
-  'admin_api_requests',
+  'admin_api_requests:${clientIp}',
   100,
   60,
 );
@@ -136,7 +136,7 @@ The Redis-backed limiter is applied after API-key authentication.
 
 Using Redis keeps the counter outside the Node.js process and allows the existing generic rate-limiting infrastructure to be reused.
 
-The current `admin_api_requests` key is shared by the Public Admin API rather than being a separate counter per API key or per client.
+The backend rate limiter maintains a separate request counter for each client IP, using the `admin_api_requests:<client-ip>` key prefix.
 
 ## Swagger / OpenAPI
 
@@ -257,7 +257,7 @@ nginx/template/default.conf.template
 
 - The Public API uses a separate API-key authentication mechanism from the frontend JWT authentication.
 - API keys are not hardcoded in the application source code.
-- API-key comparison uses SHA-256 hashes and `timingSafeEqual()`.
+- API-key authentication validates the provided key against the server-side `ADMIN_API_KEY` environment variable.
 - The configured administrator is resolved from the database instead of using a hardcoded user ID.
 - `AdminIdentityService` verifies that the configured database user has the `ADMIN` role.
 - Existing application validation, moderation and ownership rules are reused where applicable.
@@ -270,6 +270,6 @@ This API is designed for the Transcendence project environment rather than a pro
 
 In particular:
 
-- the backend Redis rate limiter currently uses one shared `admin_api_requests` counter for the Public Admin API rather than a per-key or per-client counter;
+- the backend Redis rate limiter uses per-IP counters rather than separate counters for individual API keys;
 - the configured API key represents the administrative integration rather than individual external API clients;
 - the local HTTPS environment uses project-generated certificates, so command-line tests may require `curl -k`.
