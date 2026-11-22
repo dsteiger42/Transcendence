@@ -456,7 +456,27 @@ and content moderation AI (our moderation is rule-based, not AI).
 ### Duarte Araujo
 
 - React frontend: trading screen (coin selector, price display, chart, bet panel, active bets and history), login and registration, settings, forum, moderation and admin pages; integration with the backend API and Socket.IO.
-- Challenges: <!-- TODO(Duarte) -->
+- **Challenges**:
+**Problem.** At first, bets and the balance lived only in the frontend (`localStorage`). Placing a bet took money from the account, but a refresh restored the initial balance, and anyone could edit the balance from the browser console.
+**Solution.** We moved it to the backend. Bets are now handled by a `bets` module, and the balance is the `wallet` field of the `User` model. The frontend only displays it, through a `useBets` hook and a Socket.io namespace (`/bets`) that notifies the client when a bet changes or is settled.
+
+**Problem.** The frontend container was still running the Vite dev server, so we were serving a development tool in what should be a production setup.
+**Solution.** A multi-stage Docker build: a Node stage runs `npm ci && npm run build`, and a lightweight nginx stage serves only the static `dist/` folder. Vite is now used only at build time. Details that mattered:
+- There are two nginx instances: the main ModSecurity nginx (the entry point) and the one inside the frontend container.
+- With a static build there is no hot reload, so every change needs a rebuild (`docker compose up -d --build --no-deps frontend`) and a restart of the main nginx.
+- The React app has no server-side routes, so nginx falls back to `index.html`; hashed files in `/assets/` get long cache, while `index.html` is never cached.
+- Code review fixes: `npm ci` (reproducible installs from the lockfile) and `server_tokens off` (hides the nginx version).
+
+**Problem.** The token and the user are stored in `localStorage`, which can be read and edited by anyone. The stored copy can also be outdated (changed role, expired token). On top of that, a JWT is stateless and lasts one day, so a deleted user keeps working until the token expires or the page is refreshed.
+**Solution.**
+- On app load, the frontend calls `getMe` and replaces the stored copy with the database's version. If the token is invalid or expired, it logs the user out.
+- Any `401` from the bets API triggers an automatic logout ("Session expired").
+- Known limitation: for a deleted user to lose access immediately, the backend would need to check in the JWT strategy that the user still exists, and/or push an event to close the session in real time.
+
+**Problem.** An admin could not delete a user who had posts, comments, reports or moderation logs. Prisma creates required relations with `ON DELETE RESTRICT` by default, so the database refused, and the API returned a generic error.
+**Solution.** `onDelete: Cascade` on the four relations (`Post.author`, `Comment.author`, `Report.reporter`, `ModerationLog.moderator`) and a **new** migration. Applied migrations are append-only (Prisma stores their checksums), so the old migration is never edited. The service also refuses to delete admins or the requester's own account, and maps database errors to clear responses (404/409). The frontend adds an inline confirmation and hides the button for admins and for the current user.
+
+Features such as the balance deposit need both sides to agree on an endpoint contract. We separated the work: the frontend was written first (validation, modal, hook), while the backend remains the authority and must enforce the limits (min 10 / max 50 000) regardless of what the client sends. Client-side validation is only for user experience.
 
 ### Miguel Dias
 
@@ -518,6 +538,8 @@ and content moderation AI (our moderation is rule-based, not AI).
   betting screen to the server and make the layout work on phones, to build
   the candlestick chart, and to draft the legal pages and this README. Every change was reviewed, run and tested on
   the real stack, and Miguel can explain and modify it.
+
+- **Duarte** used Claude for architectural decisions,helping with design ideas for the frontend part, debugging, helping correct syntax, since I had little experience with the languages used, and for explanations of certain topics.
 
 ## Known limitations
 

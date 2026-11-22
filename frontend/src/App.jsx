@@ -23,7 +23,6 @@ import useBets, { secondsLeft } from './hooks/useBets';
 import { fmt } from './utils/format';
 
 export default function App() {
-  // ── State (this replaces every loose "let" at the top of script.js) ──
   const [selectedCoin, setSelectedCoin] = useState('BTC');
   // Latest ticker of each coin from the server's Kraken feed: price and the
   // 24 h high, low, volume and change. Empty until the first one arrives.
@@ -88,7 +87,6 @@ export default function App() {
       const coin = ticker.symbol.split('/')[0]; // "BTC/EUR" -> "BTC"
       setTickers((prev) => ({ ...prev, [coin]: ticker }));
     }
-
     // The gateway only sends a ticker when the price changes: ask the server
     // for the current one now instead of waiting for the next change.
     COINS.forEach((coin) => {
