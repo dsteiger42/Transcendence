@@ -460,9 +460,52 @@ and content moderation AI (our moderation is rule-based, not AI).
 
 ### Pedro Silva
 
-- NestJS backend base; authentication with JWT; users, profile, password and roles.
-- Live price feed from Kraken over WebSocket, broadcast with Socket.IO; price history from CoinGecko.
-- Challenges: <!-- TODO(Pedro) -->
+- **NestJS Backend Architecture & API Development**:
+  - Developed the core backend architecture using NestJS, TypeScript, Prisma ORM and PostgreSQL, establishing a modular structure with dedicated controllers, services, modules and DTOs.
+  - Implemented REST API endpoints following separation of concerns and dependency injection principles.
+  - Integrated Prisma Client for database access, persistence and schema management.
+  - Configured global request validation using NestJS `ValidationPipe`, with `whitelist`, `forbidNonWhitelisted` and `transform` to enforce strict DTO validation and prevent unexpected input properties.
+
+- **Authentication, Authorization & User Management**:
+  - Implemented JWT-based authentication using NestJS Passport and `JwtModule`, including login and authenticated user identification.
+  - Developed user management endpoints, including account creation, user retrieval and profile management.
+  - Implemented authentication guards and role-based access control to protect restricted API endpoints.
+  - Integrated password hashing and validation using bcrypt, ensuring credentials are not stored or compared as plaintext.
+  - Implemented authenticated profile operations, allowing users to manage their own account information without exposing unrestricted access to other users' data.
+  - Developed DTO validation rules for usernames, emails, passwords and profile-related fields using `class-validator`.
+
+- **User Profile & Avatar Management**:
+  - Implemented profile update functionality through authenticated endpoints (`/users/me`).
+  - Developed avatar update handling, including Base64 image data processing and validation.
+  - Implemented input restrictions and validation rules for avatar data, username formats and maximum field lengths.
+  - Debugged and validated profile update requests using custom HTTP requests and JWT authentication.
+
+- **Wallet System & Financial Operations**:
+  - Developed a dedicated Wallet module, including `WalletController`, `WalletService` and wallet-related DTOs.
+  - Integrated wallet persistence with Prisma and PostgreSQL.
+  - Implemented wallet balance retrieval and financial operations, including credit and debit functionality.
+  - Enforced ownership-based authorization so authenticated users can only credit or debit their own wallets, preventing manipulation of other users' balances through client-supplied user IDs.
+  - Implemented balance validation and financial operation restrictions.
+  - Defined wallet balances using integer-based storage to maintain consistency with the project's financial model.
+
+- **Real-Time Cryptocurrency Integration (Kraken & Socket.IO)**:
+  - Developed a `KrakenService` to establish and maintain a WebSocket connection with the Kraken API (`wss://ws.kraken.com/v2`).
+  - Implemented real-time subscriptions for BTC/EUR and ETH/EUR ticker channels.
+  - Processed incoming market data, including bid, ask, last traded price, volume, VWAP, daily high/low and percentage change.
+  - Implemented in-memory ticker state management, allowing other backend components to access the latest market prices.
+  - Integrated real-time price broadcasting through Socket.IO, enabling frontend clients to receive live cryptocurrency market updates.
+  - Implemented WebSocket lifecycle management, connection handling and automatic reconnection with a 5-second retry interval.
+
+- **Cryptocurrency Market Data & Historical Prices**:
+  - Integrated CoinGecko API to retrieve historical cryptocurrency market data.
+  - Combined historical market information with Kraken's real-time price feed to support market data visualization and trading-related functionality.
+
+- **Challenges & Technical Problem Solving**:
+  - **JWT Authentication & Request Authorization**: Debugged authentication failures involving JWT configuration, missing `JWT_SECRET` environment variables, token validation and unauthorized responses (`401`). Worked on ensuring authenticated user identity is correctly propagated from the JWT strategy into protected controllers.
+  - **Wallet Ownership & Authorization**: Addressed the security implications of accepting user IDs directly from API requests, moving towards deriving the wallet owner from the authenticated JWT context to prevent unauthorized balance manipulation.
+  - **NestJS WebSocket Dependency Compatibility**: Resolved npm peer dependency conflicts between NestJS 10 and `@nestjs/websockets` 11 by aligning dependencies with NestJS 10.4.22 and Socket.IO 4.8.3.
+  - **Dockerized Backend Development & Debugging**: Investigated backend compilation errors, stale Docker builds, module resolution problems, environment configuration and API routing issues.
+  - **Avatar Processing & Validation**: Debugged Base64 avatar processing and profile update requests, ensuring the backend correctly handles authenticated PATCH operations and validates incoming data.
 
 ### Duarte Araujo
 

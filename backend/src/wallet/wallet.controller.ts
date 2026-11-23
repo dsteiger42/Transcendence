@@ -7,6 +7,7 @@ import {
     Body,
     Request,
     UseGuards,
+    Req,
 } from '@nestjs/common';
 
 import { WalletService } from './wallet.service';
@@ -49,28 +50,28 @@ export class WalletController {
         return this.walletService.getWalletByUserId(userId);
     }
 
-    // Credit wallet (ALL)
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Post(':userId/credit')
+    // Credit own wallet
+    @UseGuards(JwtAuthGuard)
+    @Post('credit')
     creditWallet(
-        @Param('userId', ParseIntPipe) userId: number,
+        @Req() req: Request,
         @Body() dto: CreditWalletDto,
     ) {
         return this.walletService.creditWallet(
-            userId,
+            req.user.id,
             dto.amount,
         );
     }
 
-    // Debit wallet (ALL)
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Post(':userId/debit')
+    // Debit own wallet
+    @UseGuards(JwtAuthGuard)
+    @Post('debit')
     debitWallet(
-        @Param('userId', ParseIntPipe) userId: number,
+        @Req() req: Request,
         @Body() dto: DebitWalletDto,
     ) {
         return this.walletService.debitWallet(
-            userId,
+            req.user.id,
             dto.amount,
         );
     }
