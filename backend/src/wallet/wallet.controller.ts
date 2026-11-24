@@ -54,7 +54,7 @@ export class WalletController {
     @UseGuards(JwtAuthGuard)
     @Post('credit')
     creditWallet(
-        @Req() req: Request,
+        @Req() req,
         @Body() dto: CreditWalletDto,
     ) {
         return this.walletService.creditWallet(
@@ -67,7 +67,7 @@ export class WalletController {
     @UseGuards(JwtAuthGuard)
     @Post('debit')
     debitWallet(
-        @Req() req: Request,
+        @Req() req,
         @Body() dto: DebitWalletDto,
     ) {
         return this.walletService.debitWallet(
