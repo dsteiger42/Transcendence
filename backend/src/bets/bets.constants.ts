@@ -1,7 +1,7 @@
 // Rules of the betting engine, kept in one place so they are easy to explain and change.
 
 // Balance of every new account, set by the server (never by the client).
-export const STARTING_BALANCE = 1000;
+export const STARTING_BALANCE = 0;
 
 // A bet lasts this long from the moment it is placed.
 export const BET_DURATION_SECONDS = 60;

@@ -14,6 +14,7 @@ import SettingsPage from './components/SettingsPage';
 import ForumPage from './components/Forum/ForumPage';
 import ModerationPage from './components/Forum/ModerationPage';
 import AdminUsersPage from './components/AdminUsersPage';
+import DepositModal from './components/DepositModal';
 import { COINS } from './data/constants';
 import { socket } from './api/socket';
 import { getMe } from './api/users';
@@ -39,6 +40,7 @@ export default function App() {
   const [showForum, setShowForum] = useState(false);
   const [showModeration, setShowModeration] = useState(false);
   const [showAdminUsers, setShowAdminUsers] = useState(false);
+  const [showDeposit, setShowDeposit] = useState(false);
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('currentUser');
     return saved ? JSON.parse(saved) : null;
@@ -48,7 +50,7 @@ export default function App() {
   // ── Balance and bets come from the server ──
   // The server checks, places, settles and pays every bet (hooks/useBets.js);
   // the page only shows the result. Guests have no balance and cannot bet.
-  const { balance, activeBets, settledBets, now, place } = useBets(token, {
+  const { balance, activeBets, settledBets, now, place, deposit } = useBets(token, {
     onSettled: showResults,
     onExpired: () => {
       setToken(null);
@@ -160,6 +162,13 @@ export default function App() {
     }
   }
 
+  // The server checks the amount (T€ 10 to 50 000 per deposit) and answers with
+  // the new balance. A refused deposit throws: the window shows the message.
+  async function handleDeposit(amount) {
+    await deposit(amount);
+    showToast(`+T€ ${amount.toLocaleString('en-US')} added to your balance`, 'win');
+  }
+
   async function handleLoginSuccess(accessToken) {
     setToken(accessToken);
     try {
@@ -186,6 +195,7 @@ export default function App() {
         onForumClick={() => (currentUser ? setShowForum(true) : askToLogin('Log in to use the forum'))}
         onModerationClick={() => setShowModeration(true)}
         onAdminClick={() => setShowAdminUsers(true)}
+        onDepositClick={() => setShowDeposit(true)}
         currentUser={currentUser}
         onLogout={() => { setCurrentUser(null); setToken(null); }}
       />
@@ -303,6 +313,14 @@ export default function App() {
           token={token}
           currentUser={currentUser}
           onClose={() => setShowAdminUsers(false)}
+        />
+      )}
+
+      {showDeposit && balance !== null && (
+        <DepositModal
+          balance={balance}
+          onDeposit={handleDeposit}
+          onClose={() => setShowDeposit(false)}
         />
       )}
     </>

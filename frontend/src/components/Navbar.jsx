@@ -1,6 +1,6 @@
 import ProfileDropdown from './ProfileDropdown';
 
-export default function Navbar({ balance, onRegisterClick, onLoginClick, onSettingsClick, onForumClick, onModerationClick, onAdminClick, currentUser, onLogout }) {
+export default function Navbar({ balance, onRegisterClick, onLoginClick, onSettingsClick, onForumClick, onModerationClick, onAdminClick, onDepositClick, currentUser, onLogout }) {
   return (
     <nav className="navbar">
       <div className="logo">
@@ -43,6 +43,12 @@ export default function Navbar({ balance, onRegisterClick, onLoginClick, onSetti
                 {balance.toLocaleString('en-US', { minimumFractionDigits: 0 })} T€
               </span>
             </div>
+
+            <button className="nav-icon-btn" title="Add funds" aria-label="Add funds" onClick={onDepositClick}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
 
             <div className="nav-divider" />
           </>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { getBalance, getBets, placeBet } from '../api/bets';
+import { depositFunds } from '../api/wallet';
 
 // The logged-in user's balance and bets, as the server has them. The server
 // places, settles and pays every bet (backend/src/bets); this hook reads the
@@ -90,7 +91,24 @@ export default function useBets(token, { onSettled, onExpired }) {
     [token, load],
   );
 
-  return { balance, activeBets, settledBets, now, place };
+  // Adds money to the account. The server checks the amount and answers with
+  // the new balance, shown at once; a refused deposit throws an Error with the
+  // server's message.
+  const deposit = useCallback(
+    async (amount) => {
+      try {
+        const result = await depositFunds(token, amount);
+        setBalance(result.wallet);
+        return result.wallet;
+      } catch (error) {
+        if (error.status === 401) callbacks.current.onExpired?.();
+        throw error;
+      }
+    },
+    [token],
+  );
+
+  return { balance, activeBets, settledBets, now, place, deposit };
 }
 
 // Whole seconds left before the server settles the bet.

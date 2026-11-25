@@ -1866,3 +1866,15 @@ body {
   background: rgba(46, 204, 113, 0.1);
   border: 1px solid rgba(46, 204, 113, 0.35);
 }
+
+/* Add funds window */
+.deposit-info {
+  margin: 0 0 12px;
+  font-size: 13px;
+  opacity: 0.75;
+}
+.deposit-summary {
+  margin: 4px 0 8px;
+  font-size: 13px;
+  opacity: 0.85;
+}
