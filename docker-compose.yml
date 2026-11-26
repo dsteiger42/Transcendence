@@ -100,7 +100,7 @@ services:
     restart: unless-stopped
 
   modsec-audit-init:
-    image: alpine
+    image: alpine:3.24.4
     command:
       - sh
       - -c
@@ -157,7 +157,7 @@ services:
 
   nginx_exporter:
     container_name: nginx_exporter
-    image: nginx/nginx-prometheus-exporter
+    image: nginx/nginx-prometheus-exporter:1.5.0
     networks:
       - 42Bet
     command:
@@ -170,7 +170,7 @@ services:
     restart: unless-stopped
 
   vault-data-init:
-    image: alpine
+    image: alpine:3.24.4
     command: ["chown", "-R", "100:1000", "/vault/data"]
     volumes:
       - vault-data:/vault/data
@@ -179,7 +179,7 @@ services:
 
   vault:
     container_name: vault
-    image: hashicorp/vault
+    image: hashicorp/vault:2.2.2
     networks:
       - 42Bet
     environment:
@@ -210,7 +210,7 @@ services:
     restart: unless-stopped
 
   vault-keys-init:
-    image: alpine
+    image: alpine:3.24.4
     command: ["chown", "-R", "100:1000", "/vault/keys"]
     volumes:
       - vault-keys:/vault/keys
@@ -218,7 +218,7 @@ services:
       - no-new-privileges:true
 
   vault-approle-init:
-    image: alpine
+    image: alpine:3.24.4
     command: ["chown", "-R", "100:1000", "/vault/approle"]
     volumes:
       - vault-approle:/vault/approle
@@ -227,7 +227,7 @@ services:
 
   vault_init:
     container_name: vault_init
-    image: hashicorp/vault
+    image: hashicorp/vault:2.2.2
     networks:
       - 42Bet
     environment:
@@ -263,7 +263,7 @@ services:
 
   grafana:
     container_name: grafana
-    image: grafana/grafana
+    image: grafana/grafana:13.3.2
     networks:
       - 42Bet
     environment:
@@ -283,7 +283,7 @@ services:
     restart: unless-stopped
 
   prometheus-init:
-    image: alpine
+    image: alpine:3.24.4
     command: ["chown", "-R", "65534:65534", "/var/lib/prometheus/data"]
     volumes:
       - prometheus-data:/var/lib/prometheus/data
@@ -292,7 +292,7 @@ services:
 
   prometheus:
     container_name: prometheus
-    image: prom/prometheus
+    image: prom/prometheus:v3.16.0
     networks:
       - 42Bet
     volumes:
@@ -319,7 +319,7 @@ services:
 
   redis:
     container_name: redis
-    image: redis
+    image: redis:8.12.0
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     networks:
       - 42Bet
@@ -337,7 +337,7 @@ services:
 
   redis_exporter:
     container_name: redis_exporter
-    image: oliver006/redis_exporter
+    image: oliver006/redis_exporter:v1.99.0
     networks:
       - 42Bet
     environment:
@@ -422,7 +422,7 @@ services:
 
   postgres_exporter:
     container_name: postgres_exporter
-    image: prometheuscommunity/postgres-exporter
+    image: prometheuscommunity/postgres-exporter:v0.21.1
     networks:
       - 42Bet
     environment:
@@ -437,7 +437,7 @@ services:
     restart: unless-stopped
 
   elasticsearch_backups_init:
-    image: alpine
+    image: alpine:3.24.4
     command: ["chown", "-R", "1000:0", "/usr/share/elasticsearch/backups"]
     volumes:
       - ./backups/elasticsearch:/usr/share/elasticsearch/backups
