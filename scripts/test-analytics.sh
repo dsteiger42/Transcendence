@@ -3,7 +3,8 @@
 # 42Bet analytics - end-to-end test
 # ============================================================
 #
-# Creates a user, places 4 bets, settles them and checks GET
+# Creates a user, deposits 1000 T€ of play money (new accounts start
+# with 0 T€), places 4 bets, settles them and checks GET
 # /users/me/analytics through nginx: the figures, the filters,
 # the validation, and the /bets socket that tells the dashboard
 # to reload.
@@ -40,14 +41,18 @@ py() {
   printf '%s' "$BODY" | python3 -I -c 'import json, sys; d = json.load(sys.stdin); print(eval(sys.argv[1]))' "$1"
 }
 
-USERNAME="analytics$RANDOM$RANDOM"
+# At most 15 characters: the server refuses usernames longer than 18 at registration.
+USERNAME="stats$RANDOM$RANDOM"
 curl -sk -o /dev/null -X POST "$BASE_URL/users" -H 'Content-Type: application/json' \
   --data "{\"username\":\"$USERNAME\",\"email\":\"$USERNAME@example.com\",\"password\":\"$PASSWORD\"}"
 TOKEN=$(curl -sk -X POST "$BASE_URL/auth/login" -H 'Content-Type: application/json' \
   --data "{\"username\":\"$USERNAME\",\"password\":\"$PASSWORD\"}" |
   python3 -I -c 'import json, sys; print(json.load(sys.stdin)["access_token"])')
+# New accounts start with 0 T€: add play money first, as the Add funds window does.
+curl -sk -o /dev/null -X POST "$BASE_URL/wallet/credit" -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' --data '{"amount":1000}'
 
-echo "== New account"
+echo "== New account, after a deposit of 1000 T€"
 get /users/me/analytics
 check "GET /users/me/analytics -> 200" 200 "$CODE"
 check "  no bets, balance 1000" "0 1000" "$(py 'f"{d["summary"]["bets"]} {d["summary"]["balance"]}"')"

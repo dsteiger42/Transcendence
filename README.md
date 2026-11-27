@@ -534,7 +534,7 @@ Features such as the balance deposit need both sides to agree on an endpoint con
 
 ### Miguel Dias
 
-- **Betting engine** (`backend/src/bets`): balance, placing bets, history, and the settlement loop; new accounts start with 1000 T€ set by the server; `Bet` table and migration; `scripts/test-bets.sh`.
+- **Betting engine** (`backend/src/bets`): balance, placing bets, history, and the settlement loop; new accounts start with 0 T€, set by the server (players add play money with the deposit window made by Duarte and Pedro); `Bet` table and migration; `scripts/test-bets.sh`.
 - **Analytics dashboard** (module Data and Analytics, Major): `GET /users/me/analytics`, the `/bets` real-time socket, and the dashboard page with 4 charts, filters, live updates and CSV, JSON and PDF export; `scripts/test-analytics.sh`.
 - **Project audit** against the subject, and fixes for the problems that would have failed the evaluation: Filebeat not starting on hosts with umask 002, Kibana not starting with the `.env.example` values, and Grafana panels and Prometheus queries blocked by the WAF.
 - **Privacy Policy and Terms of Service** pages and the footer.
