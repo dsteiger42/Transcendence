@@ -5,7 +5,8 @@
 #
 # Creates two users and checks the betting engine (backend/src/bets)
 # through nginx, the same way the browser uses it:
-#   - new accounts start with 1000 T€, set by the server
+#   - new accounts start with 0 T€, set by the server (never by the client),
+#     and cannot bet before a deposit of play money (POST /wallet/credit)
 #   - betting needs a valid login token
 #   - invalid bets are refused: the amount must be a positive whole number
 #   - the balance never goes below zero, even with simultaneous bets
@@ -96,18 +97,31 @@ print("PAYOUTS %d" % payouts)' "${3:-none}")
 U1="bettest$RANDOM$RANDOM"
 U2="bettest$RANDOM$RANDOM"
 
-echo "== New accounts start with 1000 T\$, set by the server"
-call POST /users "" "{\"username\":\"$U1\",\"email\":\"$U1@example.com\",\"password\":\"$PASSWORD\",\"wallet\":0}"
-check "register sending wallet: 0 -> 201" 201 "$CODE"
-check "  balance stored" 1000 "$(field wallet)"
+echo "== New accounts start with 0 T€, set by the server"
+call POST /users "" "{\"username\":\"$U1\",\"email\":\"$U1@example.com\",\"password\":\"$PASSWORD\",\"wallet\":1000000}"
+check "register sending wallet: 1000000 -> 201" 201 "$CODE"
+check "  balance stored (the client's value is ignored)" 0 "$(field wallet)"
 call POST /users "" "{\"username\":\"$U2\",\"email\":\"$U2@example.com\",\"password\":\"$PASSWORD\"}"
 check "register without wallet -> 201" 201 "$CODE"
-check "  balance stored" 1000 "$(field wallet)"
+check "  balance stored" 0 "$(field wallet)"
 
 call POST /auth/login "" "{\"username\":\"$U1\",\"password\":\"$PASSWORD\"}"
 T1=$(field access_token)
 call POST /auth/login "" "{\"username\":\"$U2\",\"password\":\"$PASSWORD\"}"
 T2=$(field access_token)
+
+echo "== No bet before a deposit"
+call POST /users/me/bets "$T1" '{"coin":"BTC","direction":"up","amount":100}'
+check "bet with a balance of 0 -> 400" 400 "$CODE"
+check "  message" "Insufficient balance" "$(field message)"
+
+echo "== Deposit 1000 T€ of play money, as the Add funds window does"
+call POST /wallet/credit "$T1" '{"amount":1000}'
+check "user 1: POST /wallet/credit 1000 -> 201" 201 "$CODE"
+check "  balance" 1000 "$(field wallet)"
+call POST /wallet/credit "$T2" '{"amount":1000}'
+check "user 2: POST /wallet/credit 1000 -> 201" 201 "$CODE"
+check "  balance" 1000 "$(field wallet)"
 
 echo "== Balance"
 call GET /users/me/balance "$T1"
@@ -155,7 +169,7 @@ check "  new balance in the response" 900 "$(field balance)"
 check "  status" active "$(field bet.status)"
 check "  coin in upper case" BTC "$(field bet.coin)"
 
-echo "== 8 simultaneous bets of 300 T\$ with 1000 T\$: only 3 fit"
+echo "== 8 simultaneous bets of 300 T€ with 1000 T€: only 3 fit"
 CODES=$(for i in $(seq 8); do
   curl -sk -o /dev/null -w '%{http_code}\n' -X POST "$BASE_URL/users/me/bets" \
     -H "Authorization: Bearer $T2" -H 'Content-Type: application/json' \

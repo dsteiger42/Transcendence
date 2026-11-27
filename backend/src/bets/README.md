@@ -14,7 +14,7 @@ compares it with the live price when the 60 seconds are over.
 
 | Rule | Value | Defined in |
 |------|-------|------------|
-| Starting balance of a new account | 1000 T€, set by the server | `STARTING_BALANCE`, used in `users.service.ts` |
+| Starting balance of a new account | 0 T€, set by the server; play money is added with a deposit (`POST /wallet/credit`, wallet module) | `STARTING_BALANCE`, used in `users.service.ts` |
 | Bet duration | 60 s from the moment the bet is placed | `BET_DURATION_SECONDS` |
 | Win (price moved in the chosen direction) | stake × 1.85 credited (stake back + 85%) | `PAYOUT_MULTIPLIER` |
 | Loss | the stake is lost | |
@@ -39,8 +39,8 @@ All values are in `bets.constants.ts`.
 - **No overdraft**: the stake is debited with a single conditional update,
   `UPDATE "User" SET wallet = wallet - amount WHERE id = ? AND wallet >= amount`.
   PostgreSQL runs it atomically, so simultaneous bets can never take the
-  balance below zero. Tested: 8 simultaneous bets of 300 T€ with 1000 T€ →
-  exactly 3 accepted.
+  balance below zero. Tested: 8 simultaneous bets of 300 T€ against a balance
+  of 1000 T€ → exactly 3 accepted.
 - **Never paid twice**: settlement only pays if it is the one that moves the
   bet out of `"active"` (`UPDATE ... WHERE id = ? AND status = 'active'`).
 - **Prices come from the server**: the client only sends coin, direction and
@@ -177,8 +177,9 @@ themselves.
 
 ## Testing
 
-`scripts/test-bets.sh` creates two users and checks every rule above through
-nginx (about 75 seconds, because it waits for the bets to be settled).
+`scripts/test-bets.sh` creates two users, gives each 1000 T€ with a deposit,
+and checks every rule above through nginx (about 75 seconds, because it waits
+for the bets to be settled).
 `scripts/test-analytics.sh` also checks the `/bets` socket.
 
 ## Files
