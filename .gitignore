@@ -7,3 +7,5 @@ node_modules/
 scripts/nginx/
 backups/
 /scripts/logs/
+login.sh
+/nginx/template/nginx.conf.template
