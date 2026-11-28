@@ -5,7 +5,7 @@ KEYS_FILE="/vault/keys/init.json"
 APPROLE_DIR="/vault/approle"
 
 # 0. Wait for Vault API to become accessible (sealed or unsealed)
-echo "[*] A aguardar que o Vault esteja acessível..."
+echo "[*] Waiting for Vault to become accessible..."
 while true; do
   STATUS=0
   vault status >/dev/null 2>&1 || STATUS=$?
@@ -18,11 +18,11 @@ done
 # 1. Initialize Vault — only runs once, the first time the container starts.
 #    On later runs the keys file already exists and this step is skipped.
 if [ ! -f "$KEYS_FILE" ]; then
-  echo "[*] Vault ainda não inicializado — a correr vault operator init"
+  echo "[*] Vault not initialized yet — running vault operator init"
   vault operator init -key-shares=5 -key-threshold=3 -format=json > "$KEYS_FILE"
   chmod 600 "$KEYS_FILE"
 else
-  echo "[*] Ficheiro de chaves já existe, a saltar vault operator init"
+  echo "[*] Keys file already exists, skipping vault operator init"
 fi
 
 # Extract the root token without jq (grep/cut, already available in Alpine)
@@ -32,7 +32,7 @@ export VAULT_TOKEN="$ROOT_TOKEN"
 # 2. Unseal Vault if it is sealed (happens on every Vault container restart)
 SEALED=$(vault status -format=json | grep -Eo '"sealed": *(true|false)' | grep -Eo 'true|false')
 if [ "$SEALED" = "true" ]; then
-  echo "[*] Vault selado — a destrancar com 3 das 5 chaves"
+  echo "[*] Vault is sealed — unsealing with 3 of 5 keys"
   # Extract the base64 strings inside the unseal_keys_b64 block (no jq)
   UNSEAL_KEYS=$(sed -n '/"unseal_keys_b64"/,/\]/p' "$KEYS_FILE" | grep -Eo '"[A-Za-z0-9+/=]+"' | tr -d '"')
   i=0
@@ -42,7 +42,7 @@ if [ "$SEALED" = "true" ]; then
     [ "$i" -ge 3 ] && break
   done
 else
-  echo "[*] Vault já estava destrancado"
+  echo "[*] Vault was already unsealed"
 fi
 
 # 2.5 Bootstrap already done? If the root token has been revoked and the
@@ -50,11 +50,11 @@ fi
 #     Vault was already unsealed above.
 if ! vault token lookup >/dev/null 2>&1; then
   if [ -s "$APPROLE_DIR/role_id" ] && [ -s "$APPROLE_DIR/secret_id" ]; then
-    echo "[*] Bootstrap já concluído (root token revogado, AppRole presente) — nada a fazer"
+    echo "[*] Bootstrap already completed (root token revoked, AppRole present) — nothing to do"
     exit 0
   fi
-  echo "[!] Root token inválido e AppRole em falta — estado inconsistente."
-  echo "[!] Apaga os volumes (docker compose down -v) e recomeça."
+  echo "[!] Invalid root token and missing AppRole — inconsistent state."
+  echo "[!] Remove volumes (docker compose down -v) and restart."
   exit 1
 fi
 
@@ -92,7 +92,7 @@ vault read -field=role_id auth/approle/role/backend-role/role-id > "$APPROLE_DIR
 vault write -f -field=secret_id auth/approle/role/backend-role/secret-id > "$APPROLE_DIR/secret_id"
 
 chmod 600 "$APPROLE_DIR/role_id" "$APPROLE_DIR/secret_id"
-echo "[*] role_id e secret_id gravados em $APPROLE_DIR"
+echo "[*] role_id and secret_id saved to $APPROLE_DIR"
 
 # 10. Revoke the root token — it is no longer needed after bootstrap.
 #     On re-runs, step 2.5 exits before reaching this point.
