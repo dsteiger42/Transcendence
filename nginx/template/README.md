@@ -79,13 +79,14 @@ Expected: no output from any of the three (the last two confirm what the upstrea
 
 ## Rate limiting
 
-Four active zones, with different values depending on the sensitivity and expected traffic pattern of the endpoint being protected:
+Five active zones, with different values depending on the sensitivity and expected traffic pattern of the endpoint being protected:
 
 ```nginx
 limit_req_zone $binary_remote_addr zone=admin_api:10m rate=30r/s;
 limit_req_zone $binary_remote_addr zone=login:10m rate=10r/m;
 limit_req_zone $binary_remote_addr zone=forum:10m rate=30r/s;
 limit_req_zone $binary_remote_addr zone=health:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=wallet:10m rate=10r/s;
 ```
 
 | Zone | Applied to | Limit | Burst | Why |
@@ -94,6 +95,7 @@ limit_req_zone $binary_remote_addr zone=health:10m rate=10r/s;
 | `forum` | `/forum` | 30 requests/second per IP | 5 (`limit_req_status 429`) | General browsing + content-creation traffic. IP-level limit only; per-user, per-action limits (posts, comments, reports) are enforced separately in the backend via `RateLimiterService` — see "Per-user rate limiting" below. |
 | `admin_api` | `/api/admin` | 30 requests/second per IP | 5 (`limit_req_status 429`) | The Admin Public API. IP-level limit at nginx complements a second, per-client-IP limit enforced in the backend itself (`AdminApiRateLimitGuard`, 100 req/60s) — see `docs/security/SECURITY_REPORT.md` §4 for the bug found and fixed in that guard. |
 | `health` | `/health` | 10 requests/second per IP | 20, `nodelay` | Public health-check endpoint, expected to be polled frequently (e.g. by the status page, every 10s). Generous burst so legitimate polling is never delayed, while still bounding abuse. |
+| `wallet` | `/wallet` | 10 requests/second per IP | 10, `nodelay` (`limit_req_status 429`) | Financial operations (balance deposits/debits). Protects against automated script spamming while providing immediate responses for human users. |
 
 The previously-commented `api` zone, kept as a placeholder in earlier revisions of this file, has been superseded: the Admin Public API is live under `/api/admin`, with its own `admin_api` zone above.
 

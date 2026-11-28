@@ -9,6 +9,7 @@
     limit_req_zone $binary_remote_addr zone=login:10m rate=10r/m;
     limit_req_zone $binary_remote_addr zone=forum:10m rate=30r/s;
     limit_req_zone $binary_remote_addr zone=health:10m rate=10r/s;
+    limit_req_zone $binary_remote_addr zone=wallet:10m rate=10r/s;
     
     server {
         listen ${PORT};
@@ -178,11 +179,14 @@
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
         }
-        location /wallet/ {
-            proxy_pass http://backend:8000/wallet/;
+        location /wallet {
+            proxy_pass $upstream_backend;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
+
+            limit_req zone=wallet burst=10 nodelay;
+            limit_req_status 429;
         }
     }

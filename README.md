@@ -441,7 +441,7 @@ and content moderation AI (our moderation is rule-based, not AI).
   - Multi-tier least privilege in PostgreSQL: Idempotent provisioning (`postgres_app_user_init`) of `app_user` with restricted DML privileges (`SELECT`, `INSERT`, `UPDATE`, `DELETE`) and `ALTER DEFAULT PRIVILEGES` for future migrations, removing superuser access from backend runtime and isolating DDL migrations to `backend_migrate`.
   - Dedicated monitoring role: Created `postgres_exporter` user granted PostgreSQL native `pg_monitor` role, providing full server performance visibility with zero access to application tables.
 - **Brute-Force & Rate Limiting Hardening**:
-  - Dual-layer rate limiting: Leaky bucket IP limiting at Nginx (4 zones: `/auth`, `/api/admin`, `/forum`, `/health`) and account-level limiting in NestJS + Redis.
+  - Dual-layer rate limiting: Leaky bucket IP limiting at Nginx (5 zones: `/auth`, `/api/admin`, `/forum`, `/health`, `/wallet`) and account-level limiting in NestJS + Redis.
   - Resolved account-based brute-force bypass (Finding S1): Implemented account-level Redis counter keyed on canonical `user.id`, preventing attackers from evading lockout by alternating between email and username; SHA-256 hashed keys for non-existent users to avoid storing plaintext emails in Redis.
 - **Monitoring, Centralized Logging & Disaster Recovery (Prometheus, Grafana, ELK)**:
   - Prometheus hardening: Removed unauthenticated public access (returns `404` through Nginx); all queries proxied securely via authenticated Grafana with `access: proxy`.
