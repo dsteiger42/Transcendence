@@ -9,8 +9,8 @@
 #   - attacks in the same fields are still refused by the WAF (403)
 #   - the date filter includes the whole end day (Hugo's fix)
 #
-# Usage:  bash scripts/test-forum.sh           (with the stack started by make)
-#         BASE_URL=https://localhost:8443 bash scripts/test-forum.sh
+# Usage:  bash scripts/tests/test-forum.sh           (with the stack started by make)
+#         BASE_URL=https://localhost:8443 bash scripts/tests/test-forum.sh
 # Needs:  curl and python3. Creates one user and one post, and deletes the post.
 #
 # ============================================================

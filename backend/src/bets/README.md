@@ -177,10 +177,10 @@ themselves.
 
 ## Testing
 
-`scripts/test-bets.sh` creates two users, gives each 1000 T€ with a deposit,
+`scripts/tests/test-bets.sh` creates two users, gives each 1000 T€ with a deposit,
 and checks every rule above through nginx (about 75 seconds, because it waits
 for the bets to be settled).
-`scripts/test-analytics.sh` also checks the `/bets` socket.
+`scripts/tests/test-analytics.sh` also checks the `/bets` socket.
 
 ## Files
 

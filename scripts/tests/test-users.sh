@@ -8,8 +8,8 @@
 #   - the login accepts the username or the email
 #   - the avatar must be a PNG, JPEG, GIF or WebP image
 #
-# Usage:  bash scripts/test-users.sh           (with the stack started by make)
-#         BASE_URL=https://localhost:8443 bash scripts/test-users.sh
+# Usage:  bash scripts/tests/test-users.sh           (with the stack started by make)
+#         BASE_URL=https://localhost:8443 bash scripts/tests/test-users.sh
 # Needs:  curl and python3. Logs in 4 times (nginx allows 10 logins a minute).
 #
 # ============================================================

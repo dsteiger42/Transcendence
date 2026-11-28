@@ -14,8 +14,8 @@
 #   - a bet settled too late is refunded (needs docker)
 #   - every bet is settled after 60 s with the right payout
 #
-# Usage:  bash scripts/test-bets.sh            (with the stack started by make)
-#         BASE_URL=https://localhost:8443 bash scripts/test-bets.sh
+# Usage:  bash scripts/tests/test-bets.sh            (with the stack started by make)
+#         BASE_URL=https://localhost:8443 bash scripts/tests/test-bets.sh
 # Needs:  curl and python3; docker for the "settled too late" check.
 # Takes about 75 seconds, because it waits for the bets to be settled.
 #

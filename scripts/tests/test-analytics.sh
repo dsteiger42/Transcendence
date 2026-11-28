@@ -9,7 +9,7 @@
 # the validation, and the /bets socket that tells the dashboard
 # to reload.
 #
-# Usage:  bash scripts/test-analytics.sh      (with the stack started by make)
+# Usage:  bash scripts/tests/test-analytics.sh      (with the stack started by make)
 # Needs:  curl, python3 and docker (to settle the bets at once and to open
 #         the socket from the backend container).
 #

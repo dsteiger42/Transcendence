@@ -190,7 +190,7 @@ Implemented in two complementary layers on `/auth/login` (full detail in
 - **By account (backend + Redis)** — a custom, reusable `RateLimiterService`
   in NestJS, using Redis `INCR`+`EXPIRE` for atomic, self-expiring counters.
   5 failed attempts / 30-minute window per account, reset on successful login
-  (verified end-to-end by `scripts/test-rate-limit-reset.sh`: three failed attempts
+  (verified end-to-end by `scripts/tests/test-rate-limit-reset.sh`: three failed attempts
   leave the Redis counter at `3`, a correct login deletes the key).
 
 **A real bug was found and fixed after the original report:** the per-account
@@ -205,7 +205,7 @@ field accepts the username or the email of the same account, so a key built from
 the typed text gave one account two independent counters. An attacker got up to
 10 attempts instead of 5, and an account locked through the username could still
 be logged into through the email with the correct password (confirmed by the
-`S1` test of `scripts/test-security.sh`, `200 (bypass total)`, and in Redis, with
+`S1` test of `scripts/tests/test-security.sh`, `200 (bypass total)`, and in Redis, with
 the keys `login_attempts:<username>` and `login_attempts:<email>` for one
 account). Fixed by building the key from the account: `login_attempts:user:${user.id}`
 when the account exists, and `login_attempts:unknown:<sha256 of the lowercased text>`
@@ -522,7 +522,7 @@ limitation:
   valid=10s;` with variable-based `proxy_pass`), so recreating a service no
   longer requires restarting nginx.
 - ~~**Rate limit reset test (Test 12)**~~ — **resolved.** Registration works, so
-  `scripts/test-rate-limit-reset.sh` registers a disposable account, builds up
+  `scripts/tests/test-rate-limit-reset.sh` registers a disposable account, builds up
   three failed attempts (the Redis counter reads `3`) and checks that a correct
   login deletes `login_attempts:user:<id>`. Result: 9 passed, 0 failed.
 - **Elasticsearch data is backed up with daily snapshots, not treated as a
@@ -551,7 +551,7 @@ limitation:
 - Working `RateLimiterService` (NestJS, reused across login, forum, and the Admin Public API)
 - `backend_migrate` and `backend_seed` services (automated, ordered database setup)
 - `elasticsearch_ilm_init` and `kibana_user_init` services (automated, idempotent ELK configuration)
-- `scripts/test-rate-limit-reset.sh` — end-to-end test that a successful login clears the per-account counter
+- `scripts/tests/test-rate-limit-reset.sh` — end-to-end test that a successful login clears the per-account counter
 - Elasticsearch daily snapshots (SLM policy `daily-snapshots`, 30-day retention), registered by `elasticsearch_ilm_init`
 - Hardened Vault deployment (real init/unseal, TLS, persisted AppRole credentials,
   unsealed healthcheck validation and deadlock-free startup ordering)

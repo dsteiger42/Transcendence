@@ -795,7 +795,7 @@ to end, not assumed:
     entry; `%2F` in `providerName` → `401`, `920230` still on
     `ARGS:json.providerName` (the exclusion covers `currentURL` only).
   - A real login in the browser works.
-  - `bash scripts/test-forum.sh` → 11/11 and `bash scripts/test-users.sh` →
+  - `bash scripts/tests/test-forum.sh` → 11/11 and `bash scripts/tests/test-users.sh` →
     19/19 after the change.
 - Grafana userstorage (rules `1000006` and `1000007`), curl without a Grafana
   session (`401` = the WAF let it through, `403` = the WAF blocked it):
@@ -835,8 +835,8 @@ to end, not assumed:
     `;cat /etc/passwd` in `comment` → `403`
 - Explore Traces is unchanged: its URL still gives `403` on reload (documented
   limitation).
-- Existing exclusions after the userstorage change: `bash scripts/test-forum.sh`
-  → 11/11 and `bash scripts/test-users.sh` → 19/19.
+- Existing exclusions after the userstorage change: `bash scripts/tests/test-forum.sh`
+  → 11/11 and `bash scripts/tests/test-users.sh` → 19/19.
 
 ## How to test
 
@@ -884,7 +884,7 @@ to end, not assumed:
      -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
      -d '{"username":"data:text/html;base64,PHNjcmlwdD4="}'
    ```
-   `bash scripts/test-users.sh` also sends 30 random pictures of different
+   `bash scripts/tests/test-users.sh` also sends 30 random pictures of different
    sizes, which must all be accepted.
 6. If touching the PromQL exclusions, confirm both sides again — the
    legitimate query must pass, and the same kind of payload outside the
@@ -894,7 +894,7 @@ to end, not assumed:
    All PromQL queries are proxied server-side through Grafana (`/grafana/api/ds/query`)
    which requires a valid Grafana session.
    Then open the Grafana dashboards and confirm all panels load data.
-7. If touching the forum exclusion, run `bash scripts/test-forum.sh`:
+7. If touching the forum exclusion, run `bash scripts/tests/test-forum.sh`:
    ordinary sentences must pass in posts, comments and the search box, while
    `<script>`, `onerror=` and SQL injection in `page` must still return `403`.
 8. If touching the Kibana cookie exclusion (rule `1000005`), check both the
@@ -1042,8 +1042,8 @@ to end, not assumed:
    The first one prints nothing (no rule matched); the second prints
    `ARGS:json.providerName` and `920230`, which proves the exclusion covers
    `currentURL` only. Then log in to `https://localhost/kibana/` in the browser
-   and confirm it works, and run `bash scripts/test-forum.sh && bash
-   scripts/test-users.sh`.
+   and confirm it works, and run `bash scripts/tests/test-forum.sh && bash
+   scripts/tests/test-users.sh`.
 12. If touching the Kibana API or Socket.IO exclusions (rules `1000012`,
    `1000013`), check the scope, including the double-slash case. Rule `942220`
    matches an argument whose value is exactly `2147483648`, so it is a simple
