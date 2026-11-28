@@ -1,12 +1,22 @@
-import { Injectable, OnModuleInit } from "@nestjs/common";
+import { Injectable, OnModuleInit, Logger } from "@nestjs/common";
 import { createClient } from 'redis';
 
 @Injectable()
 export class RateLimiterService implements OnModuleInit {
+    private readonly logger = new Logger(RateLimiterService.name);
     private client = createClient({ url: process.env.REDIS_URL});
-    
+
     // Automatically called by NestJS when the module is initialized
     async onModuleInit() {
+        // Attach an error handler BEFORE connecting.
+        // The node_redis client emits 'error' events on connection failures and
+        // reconnection attempts. Without this handler, any error after the
+        // initial connect() (e.g. Redis going down) would be an unhandled
+        // EventEmitter exception and crash the Node.js process.
+        this.client.on('error', (err: Error) =>
+            this.logger.error(`Redis client error: ${err.message}`),
+        );
+
         await this.client.connect();        // Establishes the connection to Redis
     }
     

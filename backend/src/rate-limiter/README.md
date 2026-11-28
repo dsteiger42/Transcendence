@@ -64,14 +64,20 @@ Result: the first ~6 requests go through, the rest are rejected with 503 — con
 **File:** `backend/src/rate-limiter/rate-limiter.service.ts`
 
 ```typescript
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { createClient } from 'redis';
 
 @Injectable()
 export class RateLimiterService implements OnModuleInit {
+  private readonly logger = new Logger(RateLimiterService.name);
   private client = createClient({ url: process.env.REDIS_URL });
 
   async onModuleInit() {
+    // Attach error handler before connecting to avoid unhandled EventEmitter
+    // exceptions if Redis drops after the initial connect (see "Redis resilience").
+    this.client.on('error', (err: Error) =>
+      this.logger.error(`Redis client error: ${err.message}`),
+    );
     await this.client.connect();
   }
 
@@ -178,6 +184,47 @@ appeared when login by email was added: the identifier-based key gave one accoun
 two counters. It is fixed by keying on the account (`user.id`), as described in
 "Per-account key" above. The login field in the code is `username` (`LoginDto`);
 older revisions of this document called it `email`.
+
+## Redis resilience — behavior when Redis goes down
+
+Redis is a **critical dependency** of this service: without it, brute-force
+counters cannot be stored and the entire rate-limiting mechanism fails.
+The design decision is therefore to treat a Redis outage as a hard failure
+rather than silently bypassing the limit.
+
+**What happens when Redis goes down:**
+
+1. The Docker healthcheck for the backend (`GET /health/status`) calls
+   `checkRedis()` in `HealthService`, which opens a fresh connection and pings
+   Redis. If Redis is unreachable, `checkRedis()` returns `false`, the
+   endpoint returns `HTTP 503`, and Docker marks the backend container as
+   `unhealthy`.
+2. `docker compose` does **not** automatically restart an `unhealthy`
+   container (`restart: unless-stopped` only restarts containers that have
+   exited). The backend keeps running but is flagged unhealthy.
+3. Any call to `checkLimit` or `resetLimit` will throw, because the Redis
+   client's connection is broken. Those exceptions propagate as 500 errors
+   to callers of those endpoints.
+
+**The `error` event handler (`this.client.on('error', ...)`):**
+
+The `node_redis` client emits `error` events on the internal `EventEmitter`
+whenever a connection attempt fails or an established connection drops. Node.js
+terminates the process if an `EventEmitter` error is emitted with no registered
+listener (the default). Without the handler, any Redis reconnection failure
+after the initial `connect()` succeeds would **crash the backend process**.
+
+Adding the handler converts the crash into a logged error. The connection will
+stay broken (node_redis will attempt reconnection internally with backoff), and
+calls to Redis methods will continue to throw until connectivity is restored.
+The backend process itself survives and can be observed (and alerted on) via
+the healthcheck going `unhealthy`.
+
+**When Redis recovers:**
+
+node_redis reconnects automatically. Once the connection is re-established,
+calls to `checkLimit` / `resetLimit` succeed again, the healthcheck goes back
+to `healthy`, and normal operation resumes without any container restart.
 
 ## Known simplifications / future work
 
