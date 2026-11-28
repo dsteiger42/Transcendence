@@ -190,7 +190,7 @@ Implemented in two complementary layers on `/auth/login` (full detail in
 - **By account (backend + Redis)** — a custom, reusable `RateLimiterService`
   in NestJS, using Redis `INCR`+`EXPIRE` for atomic, self-expiring counters.
   5 failed attempts / 30-minute window per account, reset on successful login
-  (verified end-to-end by `scripts/test-rate-limit-reset.sh`: three failed attempts
+  (verified end-to-end by `scripts/tests/test-rate-limit-reset.sh`: three failed attempts
   leave the Redis counter at `3`, a correct login deletes the key).
 
 **A real bug was found and fixed after the original report:** the per-account
@@ -205,7 +205,7 @@ field accepts the username or the email of the same account, so a key built from
 the typed text gave one account two independent counters. An attacker got up to
 10 attempts instead of 5, and an account locked through the username could still
 be logged into through the email with the correct password (confirmed by the
-`S1` test of `scripts/test-security.sh`, `200 (bypass total)`, and in Redis, with
+`S1` test of `scripts/tests/test-security.sh`, `200 (bypass total)`, and in Redis, with
 the keys `login_attempts:<username>` and `login_attempts:<email>` for one
 account). Fixed by building the key from the account: `login_attempts:user:${user.id}`
 when the account exists, and `login_attempts:unknown:<sha256 of the lowercased text>`
@@ -256,8 +256,7 @@ Full reference in `nginx/template/README.md`. Highlights:
   (`proxy_hide_header X-Powered-By;`), alongside `server_tokens off`, so the
   backend stack is not disclosed. None of the current upstreams sends it, so the
   directive guards against a future framework change rather than fixing a leak.
-- **HTTP/2** is enabled on the HTTPS server block (`http2 on;`), negotiated via
-  ALPN; clients without HTTP/2 fall back to HTTP/1.1.
+- **TLS termination (HTTPS)** is enforced on the SSL server block with TLS 1.2 and TLS 1.3 (`ssl_protocols ${SSL_PROTOCOLS};`), standard HTTP/1.1 keep-alive connections, and strict transport security (HSTS).
 - **WebSocket support** (`/socket.io/`, added by the frontend teammate for
   real-time crypto price data) required a scoped ModSecurity exclusion for rule
   `920420`, implemented as runtime rule `1000013` in `before-crs.conf`
@@ -523,7 +522,7 @@ limitation:
   valid=10s;` with variable-based `proxy_pass`), so recreating a service no
   longer requires restarting nginx.
 - ~~**Rate limit reset test (Test 12)**~~ — **resolved.** Registration works, so
-  `scripts/test-rate-limit-reset.sh` registers a disposable account, builds up
+  `scripts/tests/test-rate-limit-reset.sh` registers a disposable account, builds up
   three failed attempts (the Redis counter reads `3`) and checks that a correct
   login deletes `login_attempts:user:<id>`. Result: 9 passed, 0 failed.
 - **Elasticsearch data is backed up with daily snapshots, not treated as a
@@ -552,7 +551,7 @@ limitation:
 - Working `RateLimiterService` (NestJS, reused across login, forum, and the Admin Public API)
 - `backend_migrate` and `backend_seed` services (automated, ordered database setup)
 - `elasticsearch_ilm_init` and `kibana_user_init` services (automated, idempotent ELK configuration)
-- `scripts/test-rate-limit-reset.sh` — end-to-end test that a successful login clears the per-account counter
+- `scripts/tests/test-rate-limit-reset.sh` — end-to-end test that a successful login clears the per-account counter
 - Elasticsearch daily snapshots (SLM policy `daily-snapshots`, 30-day retention), registered by `elasticsearch_ilm_init`
 - Hardened Vault deployment (real init/unseal, TLS, persisted AppRole credentials,
   unsealed healthcheck validation and deadlock-free startup ordering)

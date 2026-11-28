@@ -75,7 +75,7 @@ dashboard reloads.
 
 ## Testing
 
-`scripts/test-analytics.sh` checks the endpoint, its filters and validation,
+`scripts/tests/test-analytics.sh` checks the endpoint, its filters and validation,
 and the `/bets` socket, through nginx (about 10 seconds).
 
 ## Files

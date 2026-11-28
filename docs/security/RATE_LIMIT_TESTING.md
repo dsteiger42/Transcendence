@@ -154,7 +154,7 @@ docker exec -it redis redis-cli -a <REDIS_PASSWORD> --no-auth-warning GET login_
 
 **Expected conclusion:** confirms that a legitimate user, even after a few mistaken attempts, doesn't end up with "leftover history" after logging in correctly.
 
-**Automated version:** `bash scripts/test-rate-limit-reset.sh` registers a disposable account, builds up three failed attempts (the Redis counter reads `3`) and confirms that a correct login deletes `login_attempts:user:<id>`. It spaces the logins 7 seconds apart and takes about 35 seconds.
+**Automated version:** `bash scripts/tests/test-rate-limit-reset.sh` registers a disposable account, builds up three failed attempts (the Redis counter reads `3`) and confirms that a correct login deletes `login_attempts:user:<id>`. It spaces the logins 7 seconds apart and takes about 35 seconds.
 
 **Result (12 Nov 2026):** ✅ 9 passed, 0 failed.
 
@@ -249,7 +249,7 @@ docker exec -it redis redis-cli -a <REDIS_PASSWORD> --no-auth-warning GET login_
 - The login through the email with the correct password → `401` with `Too many login attempts...` (**not** `200`)
 - The last `GET` returns `7`: a blocked attempt is still counted (it does not extend the lock, since the TTL is not renewed)
 
-**Automated version:** section S1 of `scripts/test-security.sh` runs this scenario (5 failures through the username, then the correct password through the email) and fails with `200 (bypass total)` if the two spellings do not share the counter.
+**Automated version:** section S1 of `scripts/tests/test-security.sh` runs this scenario (5 failures through the username, then the correct password through the email) and fails with `200 (bypass total)` if the two spellings do not share the counter.
 
 **Result (12 Nov 2026):** ✅ Account `ratetest1` (id 29): 5 × `Invalid username or password`, and the 6th attempt (the third through the email) → `Too many login attempts`. `--scan` showed only `login_attempts:user:29` and `GET` = `6`. The correct password through the email → `401 Too many login attempts` (not `200`). Final `GET` = `7`.
 
@@ -294,14 +294,14 @@ docker exec -it redis redis-cli -a <REDIS_PASSWORD> --no-auth-warning GET login_
 | 9 | Rate limit by IP (nginx) | Burst of requests, same IP | `429` after burst | ✅ Confirmed (6x 401, then 429; reproduced three times, last on 12 Nov 2026) |
 | 10 | Rate limit by account (Redis) | Spaced-out attempts, same account | 401, then `Too many login attempts` on the 6th | ✅ Confirmed on 12 Nov 2026 (account id 29: 5 × `Invalid username or password`, then `Too many login attempts` on the 6th) |
 | 11 | Redis — direct verification | `GET`/`TTL` on the key | Correct counter and TTL, one key per account | ✅ Confirmed on 12 Nov 2026 (single key `login_attempts:user:29`, `GET`=6, `TTL`=1757) |
-| 12 | Reset on success | Correct login after failures | Key deleted (`nil`) | ✅ Confirmed on 12 Nov 2026 (`scripts/test-rate-limit-reset.sh`: counter at `3` after three failures, key deleted after the correct login; 9 passed, 0 failed) |
+| 12 | Reset on success | Correct login after failures | Key deleted (`nil`) | ✅ Confirmed on 12 Nov 2026 (`scripts/tests/test-rate-limit-reset.sh`: counter at `3` after three failures, key deleted after the correct login; 9 passed, 0 failed) |
 | 13 | Window expiration | Wait / manual EXPIRE | Counter resets | ✅ Confirmed (manual `EXPIRE 5`, then `GET` returned `nil`; on 12 Nov 2026 the key was recreated with `GET`=1 and `TTL`=1800, and the window is fixed: `TTL`=1769 thirty seconds later) |
-| 14 | Username and email share one counter | Alternate the two spellings of one account | 6th attempt blocked, one Redis key | ✅ Confirmed on 3 Nov 2026 (S1 of `scripts/test-security.sh` went from `200 (bypass total)` to `OK`; one key per account in Redis; re-run on 12 Nov 2026 with counter `6`, then `7` after the blocked correct-password login) |
+| 14 | Username and email share one counter | Alternate the two spellings of one account | 6th attempt blocked, one Redis key | ✅ Confirmed on 3 Nov 2026 (S1 of `scripts/tests/test-security.sh` went from `200 (bypass total)` to `OK`; one key per account in Redis; re-run on 12 Nov 2026 with counter `6`, then `7` after the blocked correct-password login) |
 | 15 | Unknown identifiers | Attempts on an email without account | Counted by hash, no email in clear | ✅ Confirmed on 3 Nov 2026 (key `login_attempts:unknown:<hash>` observed in Redis, no email in any key name; on 12 Nov 2026 the key name matched the SHA-256 of the lowercased text and the capitalized attempt incremented the same key, counter `2`) |
 
 *(Update the "Status" column with ✅/❌ after running each test.)*
 
-**Note:** the initial test run was affected by an unrelated backend bug (HTTP 500 on `/auth/login` due to a pending Prisma migration — see `backend/src/rate-limiter/README.md`). Tests 9-11 and 13 were re-run/run after the fix (`backend_migrate` service added to `docker-compose.yml`) and confirmed correct with the backend fully functional. Test 12 was run later, once registration worked: `scripts/test-rate-limit-reset.sh` passes (see Test 12 above).
+**Note:** the initial test run was affected by an unrelated backend bug (HTTP 500 on `/auth/login` due to a pending Prisma migration — see `backend/src/rate-limiter/README.md`). Tests 9-11 and 13 were re-run/run after the fix (`backend_migrate` service added to `docker-compose.yml`) and confirmed correct with the backend fully functional. Test 12 was run later, once registration worked: `scripts/tests/test-rate-limit-reset.sh` passes (see Test 12 above).
 
 ---
 
@@ -318,7 +318,7 @@ docker exec -it redis redis-cli -a <REDIS_PASSWORD> --no-auth-warning GET login_
 
 ## Future Tests
 
-- ~~Repeat Test 12 once `/auth/login` no longer depends on a blocked registration flow~~ — **done:** registration works and `scripts/test-rate-limit-reset.sh` passes (see Test 12).
+- ~~Repeat Test 12 once `/auth/login` no longer depends on a blocked registration flow~~ — **done:** registration works and `scripts/tests/test-rate-limit-reset.sh` passes (see Test 12).
 - ~~Rate limiting on the remaining endpoints, once they exist (forum, trades)~~ — **done for the forum.** All three write endpoints (`createPost`, `createComment`, `createReport`) now have per-user rate limiting via the same `RateLimiterService` used here (`forum_post:${userId}` 5/10min, `forum_comment:${userId}` 20/10min, `forum_report:${userId}` 10/hour), unblocked once `JwtAuthGuard` was added to those routes. `createPost` has been tested in production with the same methodology as Tests 9-11 (5×`201`, then `429` on the 6th/7th, Redis counter confirmed) — see `docs/security/SECURITY_REPORT.md` §4 and `docs/security/AUTH_HARDENING_REPORT.md` §5 for the full detail; not duplicated here since this document's scope is specifically the login endpoint. A similar per-request test log for `createComment`/`createReport`, and for trades (if/when that module gets its own write-heavy endpoints), remains open.
 - Test the per-IP rate limit's behavior when nginx sits behind a shared NAT (simulate multiple "users" from the same IP) to confirm the current values (`10r/m`, `burst=5`) don't cause excessive false lockouts.
 - Repeat Test 10 with requests that really come from different IPs (a second machine or network), to cover the botnet scenario literally.

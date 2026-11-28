@@ -7,7 +7,7 @@
 # counter login_attempts:user:<id> reads 3), then checks that a correct login
 # deletes the key.
 #
-# Usage:  bash scripts/test-rate-limit-reset.sh      (from the repository root)
+# Usage:  bash scripts/tests/test-rate-limit-reset.sh      (from the repository root)
 # Needs:  curl, python3, docker compose and REDIS_PASSWORD in .env
 # Takes about 35 seconds: the logins are 7 seconds apart so that the nginx
 # limit on /auth (10 requests a minute) never answers 429 before the account

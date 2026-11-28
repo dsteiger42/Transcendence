@@ -16,7 +16,7 @@ Documentation for the nginx configuration (reverse proxy + WAF) of the
 The file defines two `server{}` blocks:
 
 - **Port `${PORT}` (80)** — only exists to redirect all HTTP traffic to HTTPS (`301`), and to expose `/stub_status` (used by the container's healthcheck and by Prometheus's `nginx_exporter`).
-- **Port `${SSL_PORT}` (443)** — where all the real logic lives: TLS termination, HTTP/2 (`http2 on;`), WAF (ModSecurity), security headers, rate limiting, and the proxy to the various internal services (frontend, backend, Grafana, Kibana, and the static status page; Prometheus is deliberately not published).
+- **Port `${SSL_PORT}` (443)** — where all the real logic lives: TLS termination (HTTPS with TLS 1.2/1.3), WAF (ModSecurity), security headers, rate limiting, and the proxy to the various internal services (frontend, backend, Grafana, Kibana, and the static status page; Prometheus is deliberately not published).
 
 Variables (`${PORT}`, `${SERVER_NAME}`, `${SSL_CERT_FILE}`, etc.) are substituted at startup by the `envsubst` mechanism in the `owasp/modsecurity-crs` image, from the values defined under `environment:` in `docker-compose.yml`. **The filename must end in `.template`** — that suffix is what the image's startup script uses to know which files to process.
 
@@ -24,24 +24,22 @@ Because the substitution only happens when the container starts, **editing the t
 
 The directives at the top of the file (`server_tokens`, `map`, `limit_req_zone`) live outside any `server{}` block: the image includes this file inside the main `http{}` context, so they apply to both servers.
 
-## HTTP/2 Support
+## HTTPS and TLS Configuration
 
 ```nginx
 server {
     listen ${SSL_PORT} ssl;
     listen [::]:${SSL_PORT} ssl;
-    http2 on;
 ```
 
-HTTP/2 is enabled on the SSL server block using the modern `http2 on;` directive (standard in Nginx 1.25+, running Nginx 1.30.1 inside the container).
+HTTPS is enforced on the SSL server block with TLS 1.2 and TLS 1.3 (`ssl_protocols ${SSL_PROTOCOLS};`), standard HTTP/1.1 keep-alive connections, and strict transport security.
 
-- **Why:** HTTP/2 introduces binary framing and request multiplexing over a single TCP connection, eliminating head-of-line blocking for frontend assets and API calls.
-- **ALPN negotiation:** Browsers and clients negotiate `h2` during the TLS handshake via Application-Layer Protocol Negotiation (ALPN). Clients not supporting HTTP/2 seamlessly fall back to HTTP/1.1.
+- **Why:** Complies with the 42 Transcendence subject requirement mandating HTTPS for all external connections.
 - **Tested with:**
   ```bash
-  curl -v --http2 -k https://localhost 2>&1 | grep -E "ALPN|HTTP/"
+  curl -v -k https://localhost 2>&1 | grep -E "SSL connection|HTTP/"
   ```
-  Expected: `* ALPN, server accepted to use h2` and `< HTTP/2 200`.
+  Expected: TLS handshake successful and `< HTTP/1.1 200`.
 
 ## Hiding the nginx version
 
@@ -81,13 +79,14 @@ Expected: no output from any of the three (the last two confirm what the upstrea
 
 ## Rate limiting
 
-Four active zones, with different values depending on the sensitivity and expected traffic pattern of the endpoint being protected:
+Five active zones, with different values depending on the sensitivity and expected traffic pattern of the endpoint being protected:
 
 ```nginx
 limit_req_zone $binary_remote_addr zone=admin_api:10m rate=30r/s;
 limit_req_zone $binary_remote_addr zone=login:10m rate=10r/m;
 limit_req_zone $binary_remote_addr zone=forum:10m rate=30r/s;
 limit_req_zone $binary_remote_addr zone=health:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=wallet:10m rate=10r/s;
 ```
 
 | Zone | Applied to | Limit | Burst | Why |
@@ -96,6 +95,7 @@ limit_req_zone $binary_remote_addr zone=health:10m rate=10r/s;
 | `forum` | `/forum` | 30 requests/second per IP | 5 (`limit_req_status 429`) | General browsing + content-creation traffic. IP-level limit only; per-user, per-action limits (posts, comments, reports) are enforced separately in the backend via `RateLimiterService` — see "Per-user rate limiting" below. |
 | `admin_api` | `/api/admin` | 30 requests/second per IP | 5 (`limit_req_status 429`) | The Admin Public API. IP-level limit at nginx complements a second, per-client-IP limit enforced in the backend itself (`AdminApiRateLimitGuard`, 100 req/60s) — see `docs/security/SECURITY_REPORT.md` §4 for the bug found and fixed in that guard. |
 | `health` | `/health` | 10 requests/second per IP | 20, `nodelay` | Public health-check endpoint, expected to be polled frequently (e.g. by the status page, every 10s). Generous burst so legitimate polling is never delayed, while still bounding abuse. |
+| `wallet` | `/wallet` | 10 requests/second per IP | 10, `nodelay` (`limit_req_status 429`) | Financial operations (balance deposits/debits). Protects against automated script spamming while providing immediate responses for human users. |
 
 The previously-commented `api` zone, kept as a placeholder in earlier revisions of this file, has been superseded: the Admin Public API is live under `/api/admin`, with its own `admin_api` zone above.
 
@@ -257,10 +257,48 @@ WebSockets explicitly enforce `proxy_http_version 1.1;` (HTTP 1.0 does not suppo
 
 Grafana has its own WebSocket route (`/grafana/api/live/`), documented under "Infrastructure UIs" below, which reuses the same `$connection_upgrade` map.
 
+## Port redirect behavior (`port_in_redirect off`)
+
+```nginx
+port_in_redirect off;
+```
+
+Nginx runs internally on port `${SSL_PORT}` (8443), which Docker maps to the
+host's port 443. When a user visits a URL without a trailing slash (e.g.
+`https://localhost/grafana`) and the matching `location` requires one, Nginx
+generates a `301 Moved Permanently` redirect to add the slash. By default it
+includes the port it is listening on in the `Location` header:
+
+```
+Location: https://localhost:8443/grafana/
+```
+
+Port 8443 is not exposed on the host — only 443 is — so the browser tries to
+connect to `https://localhost:8443/grafana/` and gets `ERR_CONNECTION_REFUSED`.
+
+`port_in_redirect off` tells Nginx to omit the port from redirect URLs entirely,
+producing the correct header:
+
+```
+Location: https://localhost/grafana/
+```
+
+**Tested with:**
+```bash
+curl -s -D - -k https://localhost/grafana -o /dev/null | grep -i location
+# Expected: Location: https://localhost/grafana/   (no :8443)
+
+curl -s -D - -k https://localhost/kibana -o /dev/null | grep -i location
+# Expected: Location: https://localhost/kibana/
+
+curl -s -D - -k https://localhost/status -o /dev/null | grep -i location
+# Expected: Location: https://localhost/status/
+```
+
 ## Infrastructure UIs
 
 ```nginx
-location /grafana/ {
+location /grafana {
     proxy_pass $upstream_grafana;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -281,7 +319,7 @@ location /prometheus {
     return 404;
 }
 
-location /kibana/ {
+location /kibana {
     proxy_pass $upstream_kibana;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -289,6 +327,10 @@ location /kibana/ {
 ```
 
 No dedicated rate limit — these aren't endpoints exposed to end users of the application (internal/admin use), each already gated by its own authentication (Grafana login, Kibana behind `xpack.security`). Prometheus is not published: `/prometheus` returns `404`, and Grafana queries it server-side over the Docker network (via `/grafana/api/ds/query`, which requires a Grafana session). Direct access would expose metric names, internal container topology and scrape configuration with no authentication.
+
+**Why no trailing slash on `/grafana` and `/kibana`:**
+
+Earlier revisions used `location /grafana/` (with trailing slash). This caused an issue: when a user visited `https://localhost/grafana` (without slash), Nginx would generate a `301` to add it — but the redirect would include the internal port (`8443`) in the `Location` header, making it unreachable from the host (see "Port redirect behavior" above). Using `location /grafana` (no trailing slash) means Nginx matches the path as a prefix and no auto-redirect is generated for the slash-less URL; Grafana itself handles any internal redirects it needs once the request arrives.
 
 **`/grafana/api/live/` — WebSocket support for Grafana Live:**
 

@@ -8,8 +8,8 @@
 #   - the login accepts the username or the email
 #   - the avatar must be a PNG, JPEG, GIF or WebP image
 #
-# Usage:  bash scripts/test-users.sh           (with the stack started by make)
-#         BASE_URL=https://localhost:8443 bash scripts/test-users.sh
+# Usage:  bash scripts/tests/test-users.sh           (with the stack started by make)
+#         BASE_URL=https://localhost:8443 bash scripts/tests/test-users.sh
 # Needs:  curl and python3. Logs in 4 times (nginx allows 10 logins a minute).
 #
 # ============================================================
@@ -47,10 +47,29 @@ field() {
   printf '%s' "$BODY" | python3 -I -c 'import json, sys; print(json.load(sys.stdin)[sys.argv[1]])' "$1"
 }
 
+# png_data_url SIZE -> a VALID PNG as a data URL, of about SIZE bytes.
+# The pixels are random, so the picture does not compress. The server decodes
+# the avatar, so random bytes labelled "image/jpeg" are not a picture and are refused.
+png_data_url() {
+  python3 -I -c '
+import base64, os, struct, sys, zlib
+def chunk(kind, data):
+    return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+width = 20
+rows = max(1, (int(sys.argv[1]) - 100) // (1 + width * 3))
+pixels = b"".join(b"\x00" + os.urandom(width * 3) for _ in range(rows))
+png = (b"\x89PNG\r\n\x1a\n"
+       + chunk(b"IHDR", struct.pack(">IIBBBBB", width, rows, 8, 2, 0, 0, 0))
+       + chunk(b"IDAT", zlib.compress(pixels, 0))
+       + chunk(b"IEND", b""))
+print("data:image/png;base64," + base64.b64encode(png).decode())
+' "$1"
+}
+
 USER="acct$RANDOM$RANDOM"
 EMAIL="$USER@example.com"
-# A 1 x 1 PNG picture.
-PNG='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYPj/HwADBwIAMCbHYQAAAABJRU5ErkJggg=='
+# A valid 1 x 1 PNG picture (the CRC of every chunk and the zlib stream were checked).
+PNG='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg=='
 
 echo "== Registration refuses bad usernames (400)"
 for name in '' 'ab' 'with space' 'bob@home' 'abcdefghijklmnopqrstu' 'josé'; do
@@ -85,16 +104,20 @@ check "script URL as avatar (400 backend or 403 WAF)" refused "$(refused "$CODE"
 call PATCH /users/me "$TOKEN" "{\"username\":\"${USER}x\",\"avatar\":\"$PNG\"}"
 check "new username and PNG avatar -> 200" 200 "$CODE"
 check "  username saved" "${USER}x" "$(field username)"
-check "  avatar saved" "$PNG" "$(field avatar)"
+# The server re-encodes the avatar before saving it (normalizeAvatar): a PNG goes in
+# and comes out as a JPEG data URL. So the test does not expect the same bytes, nor the
+# same format: the saved avatar must be an image data URL.
+check "  avatar saved (an image data URL)" "data:image/" "$(field avatar | cut -c1-11)"
 
-echo "== 30 random pictures of different sizes are all accepted (none blocked by the WAF)"
+echo "== 30 pictures of different sizes are all accepted (none blocked by the WAF)"
 CODES=""
 for size in $(seq 3000 997 31913); do
-  AVATAR="data:image/jpeg;base64,$(head -c "$size" /dev/urandom | base64 -w0)"
-  call PATCH /users/me "$TOKEN" "{\"avatar\":\"$AVATAR\"}"
+  call PATCH /users/me "$TOKEN" "{\"avatar\":\"$(png_data_url "$size")\"}"
   CODES="$CODES $CODE"
 done
-check "pictures accepted (200)" 30 "$(grep -o 200 <<< "$CODES" | wc -l)"
+ACCEPTED=$(grep -o 200 <<< "$CODES" | wc -l)
+check "pictures accepted (200)" 30 "$ACCEPTED"
+[ "$ACCEPTED" -eq 30 ] || echo "        status codes:$(tr ' ' '\n' <<< "$CODES" | sort | uniq -c | tr -s ' \n' ' ')"
 
 echo
 echo "Result: $PASS passed, $FAIL failed"

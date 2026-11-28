@@ -213,13 +213,13 @@ one — confirmed for both the UI and the raw JSON spec.
 A demonstration and integration test script is provided at:
 
 ```text
-scripts/test-public-api.sh
+scripts/tests/test-public-api.sh
 ```
 
 Run it from the project root:
 
 ```bash
-./scripts/test-public-api.sh
+./scripts/tests/test-public-api.sh
 ```
 
 The script asks for an API key without displaying it and demonstrates:
@@ -280,7 +280,7 @@ Related files include:
 ```text
 backend/src/main.ts
 backend/src/rate-limiter/
-scripts/test-public-api.sh
+scripts/tests/test-public-api.sh
 nginx/template/default.conf.template
 ```
 

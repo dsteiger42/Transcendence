@@ -124,11 +124,11 @@ sealed, and this unseals it before the backend starts.
 
 ### Tests
 
-- `bash scripts/test-public-api.sh`: tests the public admin API (asks for the API key).
-- `bash scripts/test-bets.sh`: tests the betting engine end to end (about 75 seconds).
-- `bash scripts/test-analytics.sh`: tests the analytics endpoint and the real-time socket (about 10 seconds).
-- `bash scripts/test-users.sh`: tests the account rules: usernames, login with the email, and avatars (about 10 seconds).
-- `bash scripts/test-forum.sh`: tests that ordinary sentences pass the WAF in the forum while attacks are still refused, and the date filter (about 5 seconds).
+- `bash scripts/tests/test-public-api.sh`: tests the public admin API (asks for the API key).
+- `bash scripts/tests/test-bets.sh`: tests the betting engine end to end (about 75 seconds).
+- `bash scripts/tests/test-analytics.sh`: tests the analytics endpoint and the real-time socket (about 10 seconds).
+- `bash scripts/tests/test-users.sh`: tests the account rules: usernames, login with the email, and avatars (about 10 seconds).
+- `bash scripts/tests/test-forum.sh`: tests that ordinary sentences pass the WAF in the forum while attacks are still refused, and the date filter (about 5 seconds).
 
 nginx allows 10 logins a minute per address, so leave a minute between two
 runs of these scripts.
@@ -365,7 +365,7 @@ and content moderation AI (our moderation is rule-based, not AI).
    posts without the interface. `backend/src/public-api` exposes 8 endpoints
    under `/api/admin` (GET, POST, PUT, PATCH and DELETE), checks the
    `X-API-Key` header, limits requests in nginx and in Redis, and documents
-   everything with Swagger at `/api/admin/docs`. `scripts/test-public-api.sh`
+   everything with Swagger at `/api/admin/docs`. `scripts/tests/test-public-api.sh`
    tests it.
 4. **WAF and Vault**: every request goes through ModSecurity with the OWASP
    CRS at paranoia level 2; the few exclusions (avatar upload, PromQL queries
@@ -396,7 +396,7 @@ and content moderation AI (our moderation is rule-based, not AI).
     button in the navbar) draws 4 Recharts charts with tooltips and data
     tables, reloads when the `/bets` socket says a bet changed, and exports
     CSV, JSON and a PDF report written without a PDF library.
-    `scripts/test-analytics.sh` tests it.
+    `scripts/tests/test-analytics.sh` tests it.
 
 ## Individual Contributions
 
@@ -421,7 +421,7 @@ and content moderation AI (our moderation is rule-based, not AI).
   - Universal container privilege hardening: Enforced `security_opt: [no-new-privileges:true]` across 100% of Compose services (28 of 28), including all 6 ephemeral init containers, preventing privilege escalation through `setuid`/`setgid` binaries.
   - Disaster recovery preservation: Updated `make fclean` to preserve `./backups` so routine developer cleanups do not destroy automated PostgreSQL dumps and Elasticsearch snapshots.
 - **Nginx Reverse Proxy & ModSecurity WAF (OWASP CRS)**:
-  - TLS termination (HTTPS), HTTP/2 enabled via `http2 on;` and verified via ALPN (`h2`), defensive security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options), version suppression with `server_tokens off;`, and backend technology suppression with `proxy_hide_header X-Powered-By;`.
+  - TLS termination (HTTPS with TLS 1.2/1.3), defensive security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options), version suppression with `server_tokens off;`, and backend technology suppression with `proxy_hide_header X-Powered-By;`.
   - Dynamic DNS resolution: Configured `resolver 127.0.0.11 valid=10s` with variable-based `proxy_pass` to prevent stale IP lookups during container recreations.
   - Dedicated WebSocket proxy configurations: `/socket.io/` (real-time trading and Kraken feeds) and `/grafana/api/live/` (dedicated Grafana Live WebSocket proxy with 3600s timeouts, eliminating 400 errors and audit log flooding).
   - Content-Security-Policy: Configured and hardened; removed `'unsafe-eval'` following frontend transition to production build.
@@ -441,7 +441,7 @@ and content moderation AI (our moderation is rule-based, not AI).
   - Multi-tier least privilege in PostgreSQL: Idempotent provisioning (`postgres_app_user_init`) of `app_user` with restricted DML privileges (`SELECT`, `INSERT`, `UPDATE`, `DELETE`) and `ALTER DEFAULT PRIVILEGES` for future migrations, removing superuser access from backend runtime and isolating DDL migrations to `backend_migrate`.
   - Dedicated monitoring role: Created `postgres_exporter` user granted PostgreSQL native `pg_monitor` role, providing full server performance visibility with zero access to application tables.
 - **Brute-Force & Rate Limiting Hardening**:
-  - Dual-layer rate limiting: Leaky bucket IP limiting at Nginx (4 zones: `/auth`, `/api/admin`, `/forum`, `/health`) and account-level limiting in NestJS + Redis.
+  - Dual-layer rate limiting: Leaky bucket IP limiting at Nginx (5 zones: `/auth`, `/api/admin`, `/forum`, `/health`, `/wallet`) and account-level limiting in NestJS + Redis.
   - Resolved account-based brute-force bypass (Finding S1): Implemented account-level Redis counter keyed on canonical `user.id`, preventing attackers from evading lockout by alternating between email and username; SHA-256 hashed keys for non-existent users to avoid storing plaintext emails in Redis.
 - **Monitoring, Centralized Logging & Disaster Recovery (Prometheus, Grafana, ELK)**:
   - Prometheus hardening: Removed unauthenticated public access (returns `404` through Nginx); all queries proxied securely via authenticated Grafana with `access: proxy`.
@@ -534,12 +534,12 @@ Features such as the balance deposit need both sides to agree on an endpoint con
 
 ### Miguel Dias
 
-- **Betting engine** (`backend/src/bets`): balance, placing bets, history, and the settlement loop; new accounts start with 0 T€, set by the server (players add play money with the deposit window made by Duarte and Pedro); `Bet` table and migration; `scripts/test-bets.sh`.
-- **Analytics dashboard** (module Data and Analytics, Major): `GET /users/me/analytics`, the `/bets` real-time socket, and the dashboard page with 4 charts, filters, live updates and CSV, JSON and PDF export; `scripts/test-analytics.sh`.
+- **Betting engine** (`backend/src/bets`): balance, placing bets, history, and the settlement loop; new accounts start with 0 T€, set by the server (players add play money with the deposit window made by Duarte and Pedro); `Bet` table and migration; `scripts/tests/test-bets.sh`.
+- **Analytics dashboard** (module Data and Analytics, Major): `GET /users/me/analytics`, the `/bets` real-time socket, and the dashboard page with 4 charts, filters, live updates and CSV, JSON and PDF export; `scripts/tests/test-analytics.sh`.
 - **Project audit** against the subject, and fixes for the problems that would have failed the evaluation: Filebeat not starting on hosts with umask 002, Kibana not starting with the `.env.example` values, and Grafana panels and Prometheus queries blocked by the WAF.
 - **Privacy Policy and Terms of Service** pages and the footer.
 - **Candlestick chart** like TradingView's, with TradingView Lightweight Charts: candles from Kraken through `GET /crypto/:coin/candles` (`backend/src/candles`), zoom, candle sizes, and a green or red line at the entry price of each running bet.
-- **Final version**: connected the betting screen to the server (login required, whole positive amounts only, results in real time, live 24 h price statistics), login with the email, username and avatar checks in the browser and the server, phone and tablet layout, form labels, favicon and a clean browser console; `scripts/test-users.sh`.
+- **Final version**: connected the betting screen to the server (login required, whole positive amounts only, results in real time, live 24 h price statistics), login with the email, username and avatar checks in the browser and the server, phone and tablet layout, form labels, favicon and a clean browser console; `scripts/tests/test-users.sh`.
 - **This README**.
 - Challenges:
   - My first pull request bundled too many changes across other members' areas and had to be reverted. I then split my work into small, focused pull requests and announced every change outside my area.

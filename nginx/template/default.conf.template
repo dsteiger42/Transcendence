@@ -9,6 +9,7 @@
     limit_req_zone $binary_remote_addr zone=login:10m rate=10r/m;
     limit_req_zone $binary_remote_addr zone=forum:10m rate=30r/s;
     limit_req_zone $binary_remote_addr zone=health:10m rate=10r/s;
+    limit_req_zone $binary_remote_addr zone=wallet:10m rate=10r/s;
     
     server {
         listen ${PORT};
@@ -32,9 +33,17 @@
     server {
         listen ${SSL_PORT} ssl;
         listen [::]:${SSL_PORT} ssl;
-        http2 on;
 
         server_name  ${SERVER_NAME};
+
+        # When Nginx runs on port 8443 (mapped to 443 externally), its
+        # internally-generated redirects (e.g. for missing trailing slashes)
+        # would include the internal port in the Location header:
+        #   Location: https://localhost:8443/grafana/
+        # That port is not reachable from the host, so the browser gets
+        # ERR_CONNECTION_REFUSED.  `port_in_redirect off` tells Nginx to
+        # omit the port number from redirect URLs entirely.
+        port_in_redirect off;
 
         proxy_hide_header X-Powered-By;
 
@@ -135,7 +144,7 @@
             proxy_send_timeout 3600s;
         }
 
-        location /grafana/ {
+        location /grafana {
             proxy_pass $upstream_grafana;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -160,7 +169,7 @@
             return 404;
         }
 
-        location /kibana/ {
+        location /kibana {
             proxy_pass $upstream_kibana;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -179,11 +188,14 @@
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
         }
-        location /wallet/ {
-            proxy_pass http://backend:8000/wallet/;
+        location /wallet {
+            proxy_pass $upstream_backend;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
+
+            limit_req zone=wallet burst=10 nodelay;
+            limit_req_status 429;
         }
     }

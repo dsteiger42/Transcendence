@@ -6,9 +6,9 @@
 # Cada teste PASSA ("OK") quando a defesa existe e FALHA ("VULNERAVEL")
 # quando falta. Sai com codigo 1 se houver algum VULNERAVEL (serve na CI).
 #
-# Usage:  bash scripts/test-security.sh        (stack iniciada com make, na raiz do repo)
-#         BASE_URL=https://localhost:8443 bash scripts/test-security.sh
-#         LOGIN_GAP=10 bash scripts/test-security.sh   (mais lento, se o nginx ainda der 429)
+# Usage:  bash scripts/tests/test-security.sh        (stack iniciada com make, na raiz do repo)
+#         BASE_URL=https://localhost:8443 bash scripts/tests/test-security.sh
+#         LOGIN_GAP=10 bash scripts/tests/test-security.sh   (mais lento, se o nginx ainda der 429)
 # Needs:  curl, python3, base64 (GNU, -w0), grep.
 #
 # Duracao: cerca de 1 minuto. O nginx permite 10 logins por minuto por IP, por isso
