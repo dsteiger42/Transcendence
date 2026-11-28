@@ -5,22 +5,56 @@
   "schemaVersion": 39,
   "version": 1,
   "refresh": "10s",
-  "time": { "from": "now-6h", "to": "now" },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "panels": [
     {
       "id": 1,
       "title": "Backend",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
       "targets": [
-        { "expr": "up{job=\"backend\"}", "refId": "A" }
+        {
+          "expr": "up{job=\"backend\"}",
+          "refId": "A"
+        }
       ],
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green"
+                }
+              }
+            }
           ],
-          "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -28,16 +62,47 @@
       "id": 2,
       "title": "Nginx",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
       "targets": [
-        { "expr": "up{job=\"nginx\"}", "refId": "A" }
+        {
+          "expr": "up{job=\"nginx\"}",
+          "refId": "A"
+        }
       ],
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green"
+                }
+              }
+            }
           ],
-          "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -45,16 +110,47 @@
       "id": 3,
       "title": "Postgres",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
       "targets": [
-        { "expr": "up{job=\"postgres\"}", "refId": "A" }
+        {
+          "expr": "pg_up",
+          "refId": "A"
+        }
       ],
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green"
+                }
+              }
+            }
           ],
-          "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -62,16 +158,47 @@
       "id": 4,
       "title": "Redis",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
       "targets": [
-        { "expr": "up{job=\"redis\"}", "refId": "A" }
+        {
+          "expr": "redis_up",
+          "refId": "A"
+        }
       ],
       "fieldConfig": {
         "defaults": {
           "mappings": [
-            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green"
+                }
+              }
+            }
           ],
-          "thresholds": { "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
         }
       }
     },
@@ -79,75 +206,149 @@
       "id": 5,
       "title": "Nginx - Requests/sec",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
       "targets": [
-        { "expr": "rate(nginx_http_requests_total[1m])", "refId": "A", "legendFormat": "requests/sec" }
+        {
+          "expr": "rate(nginx_http_requests_total[1m])",
+          "refId": "A",
+          "legendFormat": "requests/sec"
+        }
       ]
     },
     {
       "id": 6,
       "title": "Nginx - Active connections",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
       "targets": [
-        { "expr": "nginx_connections_active", "refId": "A", "legendFormat": "active" }
+        {
+          "expr": "nginx_connections_active",
+          "refId": "A",
+          "legendFormat": "active"
+        }
       ]
     },
     {
       "id": 7,
       "title": "Postgres - Active connections",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
       "targets": [
-        { "expr": "pg_stat_activity_count", "refId": "A", "legendFormat": "{{datname}}" }
+        {
+          "expr": "pg_stat_activity_count",
+          "refId": "A",
+          "legendFormat": "{{datname}}"
+        }
       ]
     },
     {
       "id": 8,
       "title": "Redis - Connected clients",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
       "targets": [
-        { "expr": "redis_connected_clients", "refId": "A", "legendFormat": "clients" }
+        {
+          "expr": "redis_connected_clients",
+          "refId": "A",
+          "legendFormat": "clients"
+        }
       ]
     },
     {
       "id": 9,
       "title": "Backend - Process CPU",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 20
+      },
       "targets": [
-        { "expr": "rate(process_cpu_seconds_total{job=\"backend\"}[1m])", "refId": "A", "legendFormat": "cpu" }
+        {
+          "expr": "rate(process_cpu_seconds_total{job=\"backend\"}[1m])",
+          "refId": "A",
+          "legendFormat": "cpu"
+        }
       ]
     },
     {
       "id": 10,
       "title": "Backend - Memory (RSS)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 20
+      },
       "targets": [
-        { "expr": "process_resident_memory_bytes{job=\"backend\"}", "refId": "A", "legendFormat": "memory" }
+        {
+          "expr": "process_resident_memory_bytes{job=\"backend\"}",
+          "refId": "A",
+          "legendFormat": "memory"
+        }
       ]
     },
     {
       "id": 11,
       "title": "Backend - Requests/sec by route",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 28
+      },
       "targets": [
-        { "expr": "sum(rate(http_requests_total[1m])) by (route)", "refId": "A", "legendFormat": "{{route}}" }
+        {
+          "expr": "sum(rate(http_requests_total[1m])) by (route)",
+          "refId": "A",
+          "legendFormat": "{{route}}"
+        }
       ]
     },
     {
       "id": 12,
       "title": "Backend - p95 Latency by route",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 28
+      },
       "targets": [
-        { "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, route))", "refId": "A", "legendFormat": "{{route}}" }
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, route))",
+          "refId": "A",
+          "legendFormat": "{{route}}"
+        }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "s" }
+        "defaults": {
+          "unit": "s"
+        }
       }
     }
   ]

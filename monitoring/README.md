@@ -110,10 +110,32 @@ providers:
       path: /etc/grafana/provisioning/dashboards
 ```
 
-`infra-status.json` (same folder) defines the "Infra Status" dashboard:
-up/down stat panels for each service (`up{job="..."}`), plus timeseries panels
-for request rate, active connections, backend process CPU/memory, and custom
+`infra-status.json` (same folder) defines the "Infra Status" dashboard.
+It has up/down stat panels for each service, plus timeseries panels for
+request rate, active connections, backend process CPU/memory, and custom
 backend request metrics (see below).
+
+The up/down panels use the following expressions:
+
+| Service  | PromQL expression | What it measures |
+|---|---|---|
+| Backend  | `up{job="backend"}`  | Whether Prometheus can scrape the backend metrics endpoint |
+| Nginx    | `up{job="nginx"}`    | Whether Prometheus can scrape nginx-exporter |
+| Postgres | `pg_up`              | Whether postgres_exporter can connect to Postgres (0 = Postgres down) |
+| Redis    | `redis_up`           | Whether redis_exporter can connect to Redis (0 = Redis down) |
+
+> **Why `pg_up` and `redis_up` instead of `up{job="postgres"}` / `up{job="redis"}`?**
+>
+> `up{job="..."}` measures whether Prometheus can scrape the **exporter** — not
+> whether the actual service is running. If Postgres is stopped but
+> `postgres_exporter` is still running (which it is, since they are separate
+> containers), `up{job="postgres"}` stays at 1 and the panel stays green even
+> though the database is down.
+>
+> `pg_up` is set by the exporter itself: it attempts a real connection to
+> Postgres on every scrape and writes `pg_up = 0` if the connection fails.
+> Same for `redis_up`. These metrics are the correct signal for "is the actual
+> service healthy?"
 
 ## Custom backend metrics
 
