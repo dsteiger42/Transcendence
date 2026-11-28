@@ -257,10 +257,48 @@ WebSockets explicitly enforce `proxy_http_version 1.1;` (HTTP 1.0 does not suppo
 
 Grafana has its own WebSocket route (`/grafana/api/live/`), documented under "Infrastructure UIs" below, which reuses the same `$connection_upgrade` map.
 
+## Port redirect behavior (`port_in_redirect off`)
+
+```nginx
+port_in_redirect off;
+```
+
+Nginx runs internally on port `${SSL_PORT}` (8443), which Docker maps to the
+host's port 443. When a user visits a URL without a trailing slash (e.g.
+`https://localhost/grafana`) and the matching `location` requires one, Nginx
+generates a `301 Moved Permanently` redirect to add the slash. By default it
+includes the port it is listening on in the `Location` header:
+
+```
+Location: https://localhost:8443/grafana/
+```
+
+Port 8443 is not exposed on the host — only 443 is — so the browser tries to
+connect to `https://localhost:8443/grafana/` and gets `ERR_CONNECTION_REFUSED`.
+
+`port_in_redirect off` tells Nginx to omit the port from redirect URLs entirely,
+producing the correct header:
+
+```
+Location: https://localhost/grafana/
+```
+
+**Tested with:**
+```bash
+curl -s -D - -k https://localhost/grafana -o /dev/null | grep -i location
+# Expected: Location: https://localhost/grafana/   (no :8443)
+
+curl -s -D - -k https://localhost/kibana -o /dev/null | grep -i location
+# Expected: Location: https://localhost/kibana/
+
+curl -s -D - -k https://localhost/status -o /dev/null | grep -i location
+# Expected: Location: https://localhost/status/
+```
+
 ## Infrastructure UIs
 
 ```nginx
-location /grafana/ {
+location /grafana {
     proxy_pass $upstream_grafana;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -281,7 +319,7 @@ location /prometheus {
     return 404;
 }
 
-location /kibana/ {
+location /kibana {
     proxy_pass $upstream_kibana;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
@@ -289,6 +327,10 @@ location /kibana/ {
 ```
 
 No dedicated rate limit — these aren't endpoints exposed to end users of the application (internal/admin use), each already gated by its own authentication (Grafana login, Kibana behind `xpack.security`). Prometheus is not published: `/prometheus` returns `404`, and Grafana queries it server-side over the Docker network (via `/grafana/api/ds/query`, which requires a Grafana session). Direct access would expose metric names, internal container topology and scrape configuration with no authentication.
+
+**Why no trailing slash on `/grafana` and `/kibana`:**
+
+Earlier revisions used `location /grafana/` (with trailing slash). This caused an issue: when a user visited `https://localhost/grafana` (without slash), Nginx would generate a `301` to add it — but the redirect would include the internal port (`8443`) in the `Location` header, making it unreachable from the host (see "Port redirect behavior" above). Using `location /grafana` (no trailing slash) means Nginx matches the path as a prefix and no auto-redirect is generated for the slash-less URL; Grafana itself handles any internal redirects it needs once the request arrives.
 
 **`/grafana/api/live/` — WebSocket support for Grafana Live:**
 

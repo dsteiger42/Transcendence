@@ -36,6 +36,15 @@
 
         server_name  ${SERVER_NAME};
 
+        # When Nginx runs on port 8443 (mapped to 443 externally), its
+        # internally-generated redirects (e.g. for missing trailing slashes)
+        # would include the internal port in the Location header:
+        #   Location: https://localhost:8443/grafana/
+        # That port is not reachable from the host, so the browser gets
+        # ERR_CONNECTION_REFUSED.  `port_in_redirect off` tells Nginx to
+        # omit the port number from redirect URLs entirely.
+        port_in_redirect off;
+
         proxy_hide_header X-Powered-By;
 
         ssl_protocols ${SSL_PROTOCOLS};
@@ -135,7 +144,7 @@
             proxy_send_timeout 3600s;
         }
 
-        location /grafana/ {
+        location /grafana {
             proxy_pass $upstream_grafana;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -160,7 +169,7 @@
             return 404;
         }
 
-        location /kibana/ {
+        location /kibana {
             proxy_pass $upstream_kibana;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
