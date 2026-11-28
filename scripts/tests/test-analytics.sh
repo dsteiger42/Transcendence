@@ -37,6 +37,9 @@ get() {
 }
 
 # py EXPRESSION -> evaluates EXPRESSION on the JSON BODY, as "d"
+# The expression is Python code inside bash single quotes, so it can only use
+# double quotes. Do NOT put d["key"] inside an f-string: before Python 3.12 an
+# f-string cannot reuse its own quote character, so use "{} {}".format(...) instead.
 py() {
   printf '%s' "$BODY" | python3 -I -c 'import json, sys; d = json.load(sys.stdin); print(eval(sys.argv[1]))' "$1"
 }
@@ -55,7 +58,7 @@ curl -sk -o /dev/null -X POST "$BASE_URL/wallet/credit" -H "Authorization: Beare
 echo "== New account, after a deposit of 1000 T€"
 get /users/me/analytics
 check "GET /users/me/analytics -> 200" 200 "$CODE"
-check "  no bets, balance 1000" "0 1000" "$(py 'f"{d["summary"]["bets"]} {d["summary"]["balance"]}"')"
+check "  no bets, balance 1000" "0 1000" "$(py '"{} {}".format(d["summary"]["bets"], d["summary"]["balance"])')"
 check "  no win rate yet" None "$(py 'd["summary"]["winRate"]')"
 
 echo "== 4 bets, settled at once"
@@ -69,7 +72,7 @@ docker exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -qc "$1"'
   "UPDATE \"Bet\" SET \"expiresAt\" = now() WHERE \"userId\" = (SELECT id FROM \"User\" WHERE username = '$USERNAME')" > /dev/null
 sleep 4
 get "/users/me/analytics?tzOffset=$(date +%z | python3 -I -c 'import sys; z = sys.stdin.read().strip(); print(-(int(z[0] + "1") * (int(z[1:3]) * 60 + int(z[3:]))))')"
-check "  4 bets, none running" "4 0" "$(py 'f"{d["summary"]["bets"]} {d["summary"]["active"]}"')"
+check "  4 bets, none running" "4 0" "$(py '"{} {}".format(d["summary"]["bets"], d["summary"]["active"])')"
 check "  won + lost + refunded = 4" 4 "$(py 'd["summary"]["won"] + d["summary"]["lost"] + d["summary"]["refunded"]')"
 check "  wagered = 375" 375 "$(py 'd["summary"]["wagered"]')"
 check "  profit = paid out - wagered" True "$(py 'd["summary"]["profit"] == d["summary"]["paidOut"] - d["summary"]["wagered"]')"
