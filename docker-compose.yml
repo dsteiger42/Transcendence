@@ -120,10 +120,10 @@ services:
       - "80:8080"
     volumes:
       - ./nginx/template/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
-      - ./nginx/template/default.conf.template:/etc/nginx/templates/conf.d/default.conf.template
-      - ./scripts/setup-certs.sh:/scripts/setup-certs.sh
-      - ./nginx/certs:/etc/nginx/certs
-      - ./nginx/modsecurity/before-crs.conf:/etc/modsecurity.d/owasp-crs/rules/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf
+      - ./nginx/template/default.conf.template:/etc/nginx/templates/conf.d/default.conf.template:ro
+      - ./scripts/setup-certs.sh:/scripts/setup-certs.sh:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./nginx/modsecurity/before-crs.conf:/etc/modsecurity.d/owasp-crs/rules/REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf:ro
       - modsec-audit-log:/var/log/modsecurity
       - ./nginx/status:/usr/share/nginx/status:ro
     depends_on:
