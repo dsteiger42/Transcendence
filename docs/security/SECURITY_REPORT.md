@@ -256,8 +256,7 @@ Full reference in `nginx/template/README.md`. Highlights:
   (`proxy_hide_header X-Powered-By;`), alongside `server_tokens off`, so the
   backend stack is not disclosed. None of the current upstreams sends it, so the
   directive guards against a future framework change rather than fixing a leak.
-- **HTTP/2** is enabled on the HTTPS server block (`http2 on;`), negotiated via
-  ALPN; clients without HTTP/2 fall back to HTTP/1.1.
+- **TLS termination (HTTPS)** is enforced on the SSL server block with TLS 1.2 and TLS 1.3 (`ssl_protocols ${SSL_PROTOCOLS};`), standard HTTP/1.1 keep-alive connections, and strict transport security (HSTS).
 - **WebSocket support** (`/socket.io/`, added by the frontend teammate for
   real-time crypto price data) required a scoped ModSecurity exclusion for rule
   `920420`, implemented as runtime rule `1000013` in `before-crs.conf`

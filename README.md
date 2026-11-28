@@ -421,7 +421,7 @@ and content moderation AI (our moderation is rule-based, not AI).
   - Universal container privilege hardening: Enforced `security_opt: [no-new-privileges:true]` across 100% of Compose services (28 of 28), including all 6 ephemeral init containers, preventing privilege escalation through `setuid`/`setgid` binaries.
   - Disaster recovery preservation: Updated `make fclean` to preserve `./backups` so routine developer cleanups do not destroy automated PostgreSQL dumps and Elasticsearch snapshots.
 - **Nginx Reverse Proxy & ModSecurity WAF (OWASP CRS)**:
-  - TLS termination (HTTPS), HTTP/2 enabled via `http2 on;` and verified via ALPN (`h2`), defensive security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options), version suppression with `server_tokens off;`, and backend technology suppression with `proxy_hide_header X-Powered-By;`.
+  - TLS termination (HTTPS with TLS 1.2/1.3), defensive security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options), version suppression with `server_tokens off;`, and backend technology suppression with `proxy_hide_header X-Powered-By;`.
   - Dynamic DNS resolution: Configured `resolver 127.0.0.11 valid=10s` with variable-based `proxy_pass` to prevent stale IP lookups during container recreations.
   - Dedicated WebSocket proxy configurations: `/socket.io/` (real-time trading and Kraken feeds) and `/grafana/api/live/` (dedicated Grafana Live WebSocket proxy with 3600s timeouts, eliminating 400 errors and audit log flooding).
   - Content-Security-Policy: Configured and hardened; removed `'unsafe-eval'` following frontend transition to production build.

@@ -32,7 +32,6 @@
     server {
         listen ${SSL_PORT} ssl;
         listen [::]:${SSL_PORT} ssl;
-        http2 on;
 
         server_name  ${SERVER_NAME};
 

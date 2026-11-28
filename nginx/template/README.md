@@ -16,7 +16,7 @@ Documentation for the nginx configuration (reverse proxy + WAF) of the
 The file defines two `server{}` blocks:
 
 - **Port `${PORT}` (80)** — only exists to redirect all HTTP traffic to HTTPS (`301`), and to expose `/stub_status` (used by the container's healthcheck and by Prometheus's `nginx_exporter`).
-- **Port `${SSL_PORT}` (443)** — where all the real logic lives: TLS termination, HTTP/2 (`http2 on;`), WAF (ModSecurity), security headers, rate limiting, and the proxy to the various internal services (frontend, backend, Grafana, Kibana, and the static status page; Prometheus is deliberately not published).
+- **Port `${SSL_PORT}` (443)** — where all the real logic lives: TLS termination (HTTPS with TLS 1.2/1.3), WAF (ModSecurity), security headers, rate limiting, and the proxy to the various internal services (frontend, backend, Grafana, Kibana, and the static status page; Prometheus is deliberately not published).
 
 Variables (`${PORT}`, `${SERVER_NAME}`, `${SSL_CERT_FILE}`, etc.) are substituted at startup by the `envsubst` mechanism in the `owasp/modsecurity-crs` image, from the values defined under `environment:` in `docker-compose.yml`. **The filename must end in `.template`** — that suffix is what the image's startup script uses to know which files to process.
 
@@ -24,24 +24,22 @@ Because the substitution only happens when the container starts, **editing the t
 
 The directives at the top of the file (`server_tokens`, `map`, `limit_req_zone`) live outside any `server{}` block: the image includes this file inside the main `http{}` context, so they apply to both servers.
 
-## HTTP/2 Support
+## HTTPS and TLS Configuration
 
 ```nginx
 server {
     listen ${SSL_PORT} ssl;
     listen [::]:${SSL_PORT} ssl;
-    http2 on;
 ```
 
-HTTP/2 is enabled on the SSL server block using the modern `http2 on;` directive (standard in Nginx 1.25+, running Nginx 1.30.1 inside the container).
+HTTPS is enforced on the SSL server block with TLS 1.2 and TLS 1.3 (`ssl_protocols ${SSL_PROTOCOLS};`), standard HTTP/1.1 keep-alive connections, and strict transport security.
 
-- **Why:** HTTP/2 introduces binary framing and request multiplexing over a single TCP connection, eliminating head-of-line blocking for frontend assets and API calls.
-- **ALPN negotiation:** Browsers and clients negotiate `h2` during the TLS handshake via Application-Layer Protocol Negotiation (ALPN). Clients not supporting HTTP/2 seamlessly fall back to HTTP/1.1.
+- **Why:** Complies with the 42 Transcendence subject requirement mandating HTTPS for all external connections.
 - **Tested with:**
   ```bash
-  curl -v --http2 -k https://localhost 2>&1 | grep -E "ALPN|HTTP/"
+  curl -v -k https://localhost 2>&1 | grep -E "SSL connection|HTTP/"
   ```
-  Expected: `* ALPN, server accepted to use h2` and `< HTTP/2 200`.
+  Expected: TLS handshake successful and `< HTTP/1.1 200`.
 
 ## Hiding the nginx version
 
